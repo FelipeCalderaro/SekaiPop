@@ -472,6 +472,12 @@ Singleton {
                 root.set(key, value)
         }
 
+        // Flip an on/off setting: `ipc call options toggle quick.flat` (the 2D / 2.5D phone).
+        function toggle(key: string): void {
+            if (key in root.defaults && typeof root.defaults[key] === "boolean")
+                root.toggle(key)
+        }
+
         function reset(): void {
             root.reset()
         }

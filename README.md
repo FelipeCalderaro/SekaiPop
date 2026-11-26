@@ -263,6 +263,7 @@ It is read-only: it lists what is installed and what is missing, and changes not
 | `--plugins copy` | Copy the bundled plugins (`plugins/`) into `~/.config/sekaipop/plugins` (default). A plugin folder that is replaced is moved to `~/.config/sekaipop/plugins.sekaipop-backup-<time>/` first; plugins you added yourself or installed from Settings are never touched |
 | `--plugins link` | Link the bundled plugins to this checkout instead (for a checkout you keep and edit) |
 | `--plugins skip` | Leave the plugins folder alone |
+| `--reload ask\|yes\|no` | At the end, inside Hyprland: reload it and restart the shell on the new files. `ask` (default) asks after a full or merge install; `yes` does it in every mode, `--hypr skip` included; `no` never does. It says whether Hyprland took the reload and lists any config errors |
 | `--no-deps` | Only copy files, install no packages |
 | `--rice DIR` | Install a different copy of the `sekaipop` folder |
 | `--restore` | Put back the Hyprland config backed up by the last run |
@@ -352,7 +353,8 @@ To change one, open **Settings > Hyprland > Keybinds** (or `qs -c sekaipop ipc c
 | <kbd>Super</kbd> (tap) or <kbd>Super</kbd> + <kbd>A</kbd> | Apps (launcher phone) |
 | <kbd>Super</kbd> + <kbd>N</kbd> | Quick Panel |
 | <kbd>Super</kbd> + <kbd>Tab</kbd> | Overview |
-| <kbd>Super</kbd> + <kbd>I</kbd> | Settings |
+| <kbd>Super</kbd> + <kbd>I</kbd> | Settings (the phone turns sideways) |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>I</kbd> | Flat phone on / off (2D or the tilted 2.5D look) |
 | <kbd>Super</kbd> + <kbd>/</kbd> | Cheatsheet |
 | <kbd>Super</kbd> + <kbd>K</kbd> | On-screen keyboard |
 | <kbd>Super</kbd> + <kbd>M</kbd> | Equalizer (Sekai Pad) |

@@ -31,6 +31,7 @@ shell("SUPER + A", "launcherphone toggle", "Toggle apps")
 shell("SUPER + N", "quickpanel toggle", "Toggle quick panel")
 shell("SUPER + Tab", "overview toggle", "Toggle overview")
 shell("SUPER + I", "settings toggle", "Toggle settings")
+shell("SUPER + SHIFT + I", "options toggle quick.flat", "Toggle flat phone (2D / 2.5D)")
 -- Punctuation keys are bound by POSITION (code:N, the key's place on a US board), not by the
 -- character they type. Hyprland resolves character binds against the FIRST layout in kb_layout
 -- (input:resolve_binds_by_sym is off), whichever layout you are typing in: with "br,us", the

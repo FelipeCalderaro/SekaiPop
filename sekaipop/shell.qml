@@ -1272,6 +1272,8 @@ ShellRoot {
         // The card's size: 2x2 (the clock / user card / weather card footprint) or full.
         function size(mode: string): void { CalendarCardService.setSize(mode) }
         function toggleSize(): void { CalendarCardService.toggleSize() }
+        // Fetch the subscribed calendars (Google / .ics) again now.
+        function sync(): void { CalendarCardService.sync() }
         // An entry from a script: title, day (YYYY-MM-DD), time (HH:MM, or "" for all day),
         // kind (event | deadline). Does nothing when the day is not a real one or the title is empty.
         function add(title: string, date: string, time: string, kind: string): void {

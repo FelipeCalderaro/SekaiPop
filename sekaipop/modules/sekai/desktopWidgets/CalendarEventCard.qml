@@ -49,6 +49,8 @@ Item {
     readonly property int diff: EM.diffTo(ec.today, ec.ev.date)
     readonly property string st: EM.dueState(ec.ev, ec.diff)
     readonly property bool deadline: ec.ev.kind === "deadline"
+    // From a subscribed calendar (Google, an .ics link): shown, not changed from here.
+    readonly property bool remote: ec.ev.remote === true
     readonly property bool done: ec.st === "done"
     readonly property color accent: Qt.color(mt.attributeColors[Math.max(0, Math.min(mt.attributeColors.length - 1, ec.ev.color))])
     readonly property real face: 56
@@ -270,7 +272,30 @@ Item {
                     font.weight: Font.DemiBold
                 }
 
+                // Where a subscribed calendar's event comes from, instead of the buttons.
                 Row {
+                    visible: ec.remote
+                    spacing: 5
+
+                    MaterialIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: "event_available"
+                        size: 14
+                        color: mt.pInkSub
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (ec.ev.src || "Calendar") + "  \u00b7  edit it in that calendar"
+                        color: mt.pInkSub
+                        font.family: mt.fontFamily
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                    }
+                }
+
+                Row {
+                    visible: !ec.remote
                     spacing: 6
 
                     CalendarChip {

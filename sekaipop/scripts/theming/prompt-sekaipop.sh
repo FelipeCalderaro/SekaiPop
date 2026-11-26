@@ -31,7 +31,14 @@
 #   255 folder plate     252 git-branch plate    254 command-time plate
 #   235 ink on the plates    240 outline    241 hard shadow
 #   244 failed-command plate and arrow      243 the arrow
-# Set SEKAIPOP_PROMPT_COMPACT=1 for three rows (no top outline).
+# Styles (SEKAIPOP_PROMPT_STYLE, or ~/.config/sekaipop/prompt-style holding the word):
+#   pill     (default) ONE line: each plate is a rounded pill (Nerd Font round caps
+#            U+E0B6 / U+E0B4) in the same colours, the arrow right after them:
+#                󰉋 ~/x   main ●   ▶
+#   sticker  the four rows above: outline, plate, outline + hard shadow, arrow.
+#            SEKAIPOP_PROMPT_COMPACT=1 drops the top outline (three rows).
+# A one-line style prints no newline at all: the bash side (prompt-sekaipop.bash) puts
+# the whole of it in PS1; with rows, the last one is the line you type on.
 
 LC_ALL=C
 export LC_ALL
@@ -42,7 +49,13 @@ dir="${3:-$PWD}"
 cols="${4:-80}"
 case "$cols" in ''|*[!0-9]*) cols=80 ;; esac
 
+style="${SEKAIPOP_PROMPT_STYLE:-}"
+[ -n "$style" ] || style=$(head -n 1 "${XDG_CONFIG_HOME:-$HOME/.config}/sekaipop/prompt-style" 2>/dev/null)
+[ "$style" = sticker ] || style=pill
+
 ESC=$(printf '\033')
+CAPL=$(printf '\356\202\266')   # U+E0B6 left half circle  (pill's left cap)
+CAPR=$(printf '\356\202\264')   # U+E0B4 right half circle (pill's right cap)
 R="${ESC}[0m"
 TOP=$(printf '\342\226\202')    # U+2582 lower one quarter block    (top outline)
 BOT=$(printf '\342\226\206')    # U+2586 lower three quarters block (bottom outline + shadow)
@@ -145,6 +158,14 @@ bar() {
 
 # plate <fill index> <text>: adds the plate to all three rows
 plate() {
+    if [ "$style" = pill ]; then
+        gap=""
+        if [ "$used" -gt 0 ]; then gap=" "; used=$((used + 1)); fi
+        w=$(wlen "$2")
+        row2="${row2}${gap}${ESC}[0;38;5;$1m${CAPL}${ESC}[38;5;235;48;5;$1m $2 ${ESC}[0;38;5;$1m${CAPR}${R}"
+        used=$((used + w + 4))
+        return
+    fi
     w=$(wlen "$2")
     gap=""
     if [ "$used" -gt 0 ]; then gap=" "; used=$((used + 1)); fi
@@ -189,7 +210,9 @@ if [ "$total" -gt "$((cols - 2))" ]; then f_git=0; measure; fi
 if [ "$st" -ne 0 ]; then ac=244; else ac=243; fi
 row4="${ESC}[1;38;5;${ac}m ${I_ARROW}${R} "
 
-if [ "$SEKAIPOP_PROMPT_COMPACT" = "1" ]; then
+if [ "$style" = pill ]; then
+    printf '%s%s' " $row2" "$row4"
+elif [ "$SEKAIPOP_PROMPT_COMPACT" = "1" ]; then
     printf '%s\n%s\n%s' " $row2" " $row3" "$row4"
 else
     printf '%s\n%s\n%s\n%s' " $row1" " $row2" " $row3" "$row4"

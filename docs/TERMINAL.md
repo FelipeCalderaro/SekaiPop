@@ -51,6 +51,11 @@ bash gets `~/.local/state/sekaipop/terminal/prompt.bash`, sourced by one managed
 of `~/.bashrc` (the plates go into PS1 with every escape wrapped in `\[ \]`, folder and branch
 names escaped so nothing in them runs; PS0 times the command).
 
+**Styles.** `pill` (the default) is one line: each plate is a rounded pill with the arrow
+right after them. `sticker` is the original four rows (top outline, plate, bottom outline with a
+hard shadow, arrow). Choose with `echo sticker > ~/.config/sekaipop/prompt-style` (or `pill`), or
+`SEKAIPOP_PROMPT_STYLE` for one shell.
+
 The git plate shows the branch (the short commit when detached), a dot when there are
 uncommitted changes, and how far it is ahead of / behind its upstream: `main ● ↑2 ↓1`.
 

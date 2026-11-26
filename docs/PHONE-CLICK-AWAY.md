@@ -1,7 +1,7 @@
 # Clicking away from the phone
 
 A click anywhere that isn't the Quick Panel's phone closes it, including the empty
-corners of the box around the tilted phone. Issue [#47](https://github.com/Blapples/SekaiPop/issues/47).
+corners of the box around the tilted phone. Issue [#47](https://github.com/FelipeCalderaro/SekaiPop/issues/47).
 
 ## Why there was a dead zone
 

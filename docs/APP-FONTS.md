@@ -1,7 +1,7 @@
 # App fonts: the font of GTK, Qt and KDE apps
 
 The font your apps use, and their monospace font, picked in the shell and kept. Issue
-[#98](https://github.com/Blapples/SekaiPop/issues/98). The shell's own font is not this:
+[#98](https://github.com/FelipeCalderaro/SekaiPop/issues/98). The shell's own font is not this:
 it comes with the shell's theme.
 
 ## Using it

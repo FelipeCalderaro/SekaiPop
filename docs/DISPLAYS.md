@@ -1,7 +1,7 @@
 # Displays
 
 Settings > Hyprland > Displays turns screens on and off, and sets their mode, scale and
-place. Issue [#109](https://github.com/Blapples/SekaiPop/issues/109) is why this page exists.
+place. Issue [#109](https://github.com/FelipeCalderaro/SekaiPop/issues/109) is why this page exists.
 
 ## How it works
 

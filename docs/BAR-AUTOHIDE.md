@@ -1,7 +1,7 @@
 # Auto-hiding the bar, and a key to show or hide it
 
 The bar can slide off its edge and come back when the pointer touches that edge, and it
-can be shown or hidden with a key. Issue [#61](https://github.com/Blapples/SekaiPop/issues/61).
+can be shown or hidden with a key. Issue [#61](https://github.com/FelipeCalderaro/SekaiPop/issues/61).
 
 ## Using it
 

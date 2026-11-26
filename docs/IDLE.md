@@ -2,7 +2,7 @@
 
 After how long without input the screen locks, the screen turns off, and the machine
 suspends or hibernates, each of them optional. Issue
-[#101](https://github.com/Blapples/SekaiPop/issues/101).
+[#101](https://github.com/FelipeCalderaro/SekaiPop/issues/101).
 
 ## Using it
 

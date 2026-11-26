@@ -1,7 +1,7 @@
 # The Apps screen's order: A to Z, or most used
 
 The Apps screen can list the apps you open most first, instead of A to Z. Issue
-[#94](https://github.com/Blapples/SekaiPop/issues/94).
+[#94](https://github.com/FelipeCalderaro/SekaiPop/issues/94).
 
 ## Using it
 

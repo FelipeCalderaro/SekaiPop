@@ -2,7 +2,7 @@
 
 The **Matugen** theme takes the shell's colours from the wallpaper. These controls let you
 steer how, right where the theme is picked, and the shell re-colours live as you go.
-Issue [#28](https://github.com/Blapples/SekaiPop/issues/28).
+Issue [#28](https://github.com/FelipeCalderaro/SekaiPop/issues/28).
 
 ## Using it
 

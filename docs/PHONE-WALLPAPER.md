@@ -3,7 +3,7 @@
 The phone's home screen (the Quick Panel) and its Apps screen show a wallpaper behind
 them, seen as an LCD: the picture at nearly full strength under a fine pixel mesh, cut to
 the phone's glass. When the notification list is empty, the notifications card says so
-in one quiet line instead of staying blank. Issue [#41](https://github.com/Blapples/SekaiPop/issues/41).
+in one quiet line instead of staying blank. Issue [#41](https://github.com/FelipeCalderaro/SekaiPop/issues/41).
 
 ## Using it
 
@@ -29,7 +29,7 @@ in one quiet line instead of staying blank. Issue [#41](https://github.com/Blapp
   it: on is Desktop, off is Off. So someone who had turned the Apps screen's wallpaper off
   keeps a plain phone.
 - Desktop presets carry the mode like any other setting, and the phone's picture itself
-  (issue [#147](https://github.com/Blapples/SekaiPop/issues/147)), as they carry the
+  (issue [#147](https://github.com/FelipeCalderaro/SekaiPop/issues/147)), as they carry the
   avatar and banner: a copy, `phone.<ext>`, in the preset's `<name>.images/` folder, and
   its framing. Wearing the preset puts that copy back as the phone's picture, even when
   you have picked another since. A preset saved with no phone picture, or before presets

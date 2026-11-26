@@ -3,7 +3,7 @@
 Each monitor can wear its own theme on what sits on it: the bar and its popups, the dock,
 the desktop widgets, the Quick Panel / Settings phone when it opens there. Apps (GTK, Qt,
 the terminal, window borders) keep the one theme, since that is set session-wide.
-Issue [#29](https://github.com/Blapples/SekaiPop/issues/29).
+Issue [#29](https://github.com/FelipeCalderaro/SekaiPop/issues/29).
 
 ## Using it
 

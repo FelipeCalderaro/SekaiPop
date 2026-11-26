@@ -6,7 +6,7 @@
 
 <br>
 
-[Showcase](#showcase) &nbsp;|&nbsp; [What makes it different](#different) &nbsp;|&nbsp; [Requirements](#requirements) &nbsp;|&nbsp; [Installation](#installation) &nbsp;|&nbsp; [Keybinds](#keybinds) &nbsp;|&nbsp; [Troubleshooting](#troubleshooting)
+[Showcase](#showcase) &nbsp;|&nbsp; [What makes it different](#different) &nbsp;|&nbsp; [What's new](#whats-new) &nbsp;|&nbsp; [Requirements](#requirements) &nbsp;|&nbsp; [Installation](#installation) &nbsp;|&nbsp; [Keybinds](#keybinds) &nbsp;|&nbsp; [Troubleshooting](#troubleshooting)
 
 <br>
 
@@ -96,6 +96,27 @@ Most shells pick one look and theme it. SekaiPop starts from a single design lan
 
 <img src="assets/divider.svg" alt="" width="100%">
 
+<h2 id="whats-new">What's new</h2>
+
+The latest changes in this fork ([FelipeCalderaro/SekaiPop](https://github.com/FelipeCalderaro/SekaiPop)). The full list is in [`sekaipop/CHANGELOG.md`](sekaipop/CHANGELOG.md).
+
+<table>
+<tr>
+<td width="50%" valign="top"><b>Terminal look, out of the box</b><br>Kitty gets a Nerd Font with character (Maple Mono NF when installed, else Victor Mono, Lilex, Geist Mono, then JetBrains Mono), taller lines, padding, a beam cursor with a short trail and rounded tabs. <code>neofetch</code> shows your Quick Panel <b>banner</b> or <b>profile picture</b> as a sticker card beside the system info, in the theme's colours (pick which in Settings > General > Quick Panel > Neofetch picture). The sticker-plate <b>Terminal prompt</b> now works in bash as well as fish. <code>install.sh</code> sets all of it up on a first install (docs/TERMINAL.md).</td>
+<td width="50%" valign="top"><b>Shut down asks first</b><br>The phone's Power rail no longer powers off on one click: the first click turns <b>Shut down</b> red and says "Click again to shut down", a second click within about 3 seconds does it, the same click-twice as SAVE OVER on a desktop preset. It runs <code>poweroff</code> straight away instead of a scheduled <code>systemctl poweroff</code>.</td>
+</tr>
+<tr>
+<td valign="top"><b>Updates follow this fork</b><br>About / Update checks this repository (<code>origin</code>), not the project it was forked from. A git checkout compares with <code>origin/&lt;branch&gt;</code> and <b>Update now</b> pulls from it; an installed copy asks the repo it was installed from. An install made from commits not pushed yet is no longer reported as an update waiting.</td>
+<td valign="top"><b>Workspaces across monitors</b><br><kbd>Super</kbd> + <kbd>Alt</kbd> + arrow moves the current workspace to the monitor in that direction (by your monitor layout, wrapping round at the edges) and follows it.</td>
+</tr>
+<tr>
+<td valign="top"><b>Seven new desktop widgets</b><br>Market Ticker, Ping Board, GIF Frame, Cover Wall, Countdowns, Rain Radar and Desk Pet Mochi, bundled and off until you add them from Edit Desktop (docs/WIDGET-PLUGINS.md). Plugin authors get the block, keycap, sticker and tag components in <code>examples/plugin-kit/</code>.</td>
+<td valign="top"><b>Login screen, sounds, app themes</b><br>An SDDM login screen with the lockscreen's look (docs/SDDM.md), a choice of error sound (docs/SOUNDS.md), the Spotify and Discord themes set up by the installer (docs/SPOTIFY-DISCORD-THEME.md), an Idle & Sleep tile on the phone (docs/IDLE.md) and a wallpaper per monitor from the viewer's <b>Set on</b> row (docs/WALLPAPER-PER-MONITOR.md).</td>
+</tr>
+</table>
+
+<img src="assets/divider.svg" alt="" width="100%">
+
 <h2 id="requirements"><img src="assets/tag-requirements.svg" alt="Requirements" height="80"></h2>
 
 | Need | Notes |
@@ -129,7 +150,7 @@ Most shells pick one look and theme it. SekaiPop starts from a single design lan
 | Screenshots, OCR, recording | `grim` `slurp` `swappy` `tesseract` `tesseract-data-eng` `imagemagick` `wf-recorder` `ffmpeg` `hyprpicker` |
 | Clipboard, emoji, typing | `cliphist` `wtype` |
 | Night light, brightness | `hyprsunset` `brightnessctl` `ddcutil` |
-| Dialogs, terminal | `zenity` `kitty` |
+| Dialogs, terminal | `zenity` `kitty` `neofetch` (AUR) |
 | Wi-Fi / Bluetooth "Advanced" buttons | `plasma-nm` `kde-cli-tools` `blueman` |
 | Sounds, updates | `libcanberra` `sound-theme-freedesktop` `pacman-contrib` |
 | Media keys | `playerctl` |
@@ -173,7 +194,7 @@ Asked about separately (default no, never by `--yes` alone; `--spotify yes|no`, 
 ### 1. Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Blapples/SekaiPop/main/get.sh | bash
+curl -fsSL https://raw.githubusercontent.com/FelipeCalderaro/SekaiPop/main/get.sh | bash
 ```
 
 That is the whole install. It downloads SekaiPop, then does three jobs:
@@ -188,7 +209,7 @@ That is the whole install. It downloads SekaiPop, then does three jobs:
 Want to look first? Add `--dry-run`: it prints everything it would do and changes nothing.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Blapples/SekaiPop/main/get.sh | bash -s -- --dry-run
+curl -fsSL https://raw.githubusercontent.com/FelipeCalderaro/SekaiPop/main/get.sh | bash -s -- --dry-run
 ```
 
 Options go after the command (see [Installer options](#installer-options)), for example `--yes` or `--hypr merge`.
@@ -197,7 +218,7 @@ Options go after the command (see [Installer options](#installer-options)), for 
 <summary>Prefer to clone it yourself?</summary>
 
 ```bash
-git clone https://github.com/Blapples/SekaiPop.git
+git clone https://github.com/FelipeCalderaro/SekaiPop.git
 cd SekaiPop
 ./install.sh --dry-run      # look first
 ./install.sh                # install
@@ -218,7 +239,7 @@ Log out and back in, choosing the plain **Hyprland** session (**not** "uwsm"). T
 ### 3. Check everything
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Blapples/SekaiPop/main/get.sh | bash -s -- --check
+curl -fsSL https://raw.githubusercontent.com/FelipeCalderaro/SekaiPop/main/get.sh | bash -s -- --check
 ```
 
 It is read-only: it lists what is installed and what is missing, and changes nothing.
@@ -235,6 +256,10 @@ It is read-only: it lists what is installed and what is missing, and changes not
 | `--kitty keep` | Keep the current Kitty theme choice and report problems with an existing integration |
 | `--kitty enable` | Opt in to SekaiPop's Kitty colours after validating the configuration |
 | `--restore-kitty` | Remove SekaiPop's Kitty integration and exit |
+| `--terminal auto\|yes\|no` | The terminal look: Kitty font and cursor, neofetch with your banner, the Terminal prompt. `auto` (default) turns it all on for a first install; a reinstall only refreshes the parts already on |
+| `--spotify ask\|yes\|no` | The Spotify theme (Spicetify from the AUR). Default ask; `--yes` alone means no |
+| `--discord ask\|yes\|no` | The Discord theme (downloads the official Vencord installer). Default ask; `--yes` alone means no |
+| `--sddm ask\|yes\|no` | SekaiPop's SDDM login screen. Default ask; `--yes` alone means no. `--restore-sddm` takes it out |
 | `--plugins copy` | Copy the bundled plugins (`plugins/`) into `~/.config/sekaipop/plugins` (default). A plugin folder that is replaced is moved to `~/.config/sekaipop/plugins.sekaipop-backup-<time>/` first; plugins you added yourself or installed from Settings are never touched |
 | `--plugins link` | Link the bundled plugins to this checkout instead (for a checkout you keep and edit) |
 | `--plugins skip` | Leave the plugins folder alone |
@@ -262,6 +287,8 @@ It is read-only: it lists what is installed and what is missing, and changes not
 
 Run the install command again. Settings and state live in `~/.local/state/sekaipop`, so your choices are kept. If you cloned the repo instead, `git pull` and run `./install.sh` again.
 
+**Settings > About / Update** tells you when there is something new, and **Update now** installs it. It checks this repository, [FelipeCalderaro/SekaiPop](https://github.com/FelipeCalderaro/SekaiPop): a clone compares with the same branch on `origin`, and an installed copy asks the repo it was installed from (written to `~/.config/quickshell/sekaipop/.source`; `SEKAIPOP_REPO` or `~/.config/sekaipop/update-repo` points it elsewhere).
+
 ### Kitty colours
 
 Colour sync requires **Kitty 0.47 or newer**. If Kitty cannot be checked safely, enabling and syncing are refused without changing your config or palette. Revert remains available, including after Kitty is uninstalled.
@@ -281,6 +308,18 @@ Backups are kept under `${XDG_STATE_HOME:-~/.local/state}/sekaipop/kitty-backups
 The hook is the only stored opt-in. Status is derived: `off` means no hook, `pending` means waiting for a palette, `on` means a verified static integration, `blocked` means an installed hook needs review, and `conflict` means even the hook could not be verified (`missing` means Kitty is absent with no hook). Operation failures are tracked separately in memory. Live reload covers windows using the same config directory, including `-o font_size=12`; explicit `--config` and palette overrides are left to their owner.
 
 The installer never sends Kitty mutation IPC to a possibly old shell or one with a different environment. It reports hook setup separately from colour application: start/restart SekaiPop with the same `KITTY_CONFIG_DIRECTORY` (and XDG configuration paths) to supply the palette. A custom `KITTY_CONFIG_DIRECTORY` must be absolute; `~/` uses that process's home directory. Visible SekaiPop instances targeting that directory are checked read-only with `qs list` and the `kittyProtocol` IPC method. Stop or restart an old runtime before mutations; updating its files alone does not update its in-memory service. Independent writers and shells in other runtime namespaces must be stopped manually. `--hypr skip` does not write Hyprland configuration or force a shell restart. Restore requires the helper shipped alongside the current installer, never an unknown installed version. `--dry-run` previews without changing files.
+
+### Terminal look
+
+Set up by `install.sh` (see `--terminal`); each part has its own switch and its own revert. Details: [docs/TERMINAL.md](docs/TERMINAL.md).
+
+```bash
+sh sekaipop/scripts/theming/terminal-look.sh enable [font]   # Kitty: font, padding, cursor trail, tabs
+sh sekaipop/scripts/theming/terminal-look.sh fonts           # which of the preferred fonts are installed
+sh sekaipop/scripts/theming/neofetch-setup.sh enable         # neofetch with your banner / profile picture
+```
+
+The prompt is **Settings > Desktop > App colours > Terminal prompt** (bash and fish). `revert` undoes each script; your old neofetch config is kept as `config.conf.sekaipop-bak`, and the Kitty look sits at the top of `kitty.conf`, so anything you set below it still wins.
 
 ### Your own changes
 
@@ -320,17 +359,44 @@ To change one, open **Settings > Hyprland > Keybinds** (or `qs -c sekaipop ipc c
 | <kbd>Super</kbd> + <kbd>G</kbd> | Game Mode |
 | <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd> | Edit Desktop |
 | <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> | Focus Mode |
+| <kbd>Super</kbd> + <kbd>Esc</kbd> | Power options (the phone's Power rail) |
 | <kbd>Ctrl</kbd> + <kbd>Super</kbd> + <kbd>T</kbd> | Wallpaper picker |
 | <kbd>Ctrl</kbd> + <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd> | Random wallpaper |
 | <kbd>Ctrl</kbd> + <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd> | Theme picker |
 | <kbd>Ctrl</kbd> + <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Dark mode toggle |
 | <kbd>Ctrl</kbd> + <kbd>Super</kbd> + <kbd>R</kbd> | Restart the shell |
-| <kbd>Super</kbd> + <kbd>L</kbd> | Lock |
-| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Screen snip |
+| <kbd>Super</kbd> + <kbd>L</kbd> / <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>L</kbd> | Lock / Sleep |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>Super</kbd> + <kbd>Delete</kbd> | Power off |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Screen snip (<kbd>Ctrl</kbd> + <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>: save to a file) |
 | <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> | Character recognition (OCR) to clipboard |
 | <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>A</kbd> | Google Lens |
-| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> | Record region |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> | Record region (add <kbd>Alt</kbd> to record with sound) |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd> | Colour picker |
 | <kbd>Super</kbd> + <kbd>V</kbd> / <kbd>Super</kbd> + <kbd>.</kbd> | Clipboard history / emoji |
+| <kbd>Super</kbd> + <kbd>-</kbd> / <kbd>Super</kbd> + <kbd>=</kbd> | Zoom out / in |
+| <kbd>Super</kbd> + <kbd>Enter</kbd> / <kbd>E</kbd> / <kbd>W</kbd> / <kbd>C</kbd> / <kbd>X</kbd> | Terminal / file manager / browser / code editor / text editor |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Esc</kbd> | Task manager |
+
+**Windows and workspaces**
+
+| Keys | Action |
+|---|---|
+| <kbd>Super</kbd> + <kbd>Q</kbd> | Close window |
+| <kbd>Super</kbd> + arrows / <kbd>Super</kbd> + <kbd>Shift</kbd> + arrows | Focus / move window in that direction |
+| <kbd>Super</kbd> + <kbd>F</kbd> / <kbd>Super</kbd> + <kbd>D</kbd> | Fullscreen / maximize |
+| <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>Space</kbd> / <kbd>Super</kbd> + <kbd>P</kbd> | Float or tile / pin window |
+| <kbd>Super</kbd> + <kbd>1</kbd> ... <kbd>0</kbd> | Go to workspace 1-10 |
+| <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>1</kbd> ... <kbd>0</kbd> | Send the window to workspace 1-10 |
+| <kbd>Ctrl</kbd> + <kbd>Super</kbd> + <kbd>←</kbd> / <kbd>→</kbd> | Workspace left / right |
+| <kbd>Super</kbd> + <kbd>Alt</kbd> + arrows | **New:** move the workspace to the monitor in that direction |
+| <kbd>Super</kbd> + <kbd>S</kbd> / <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd> | Scratchpad / send the window to it |
+
+**Media**
+
+| Keys | Action |
+|---|---|
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> / <kbd>N</kbd> / <kbd>B</kbd> | Play-pause / next / previous |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd> / <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>M</kbd> | Mute speaker / microphone |
 
 Volume and brightness keys go through the shell's on-screen display.
 
@@ -359,6 +425,7 @@ SekaiPop is built on other people's work, and I'm grateful to all of them.
 
 **The foundation**
 
+- **[SekaiPop](https://github.com/Blapples/SekaiPop)** by **[Blapples](https://github.com/Blapples)**: the original project this fork is built on. The design language, the phone shell, the Sekai Pad, Edit Desktop, the themes and nearly everything described above come from it; this fork ([FelipeCalderaro/SekaiPop](https://github.com/FelipeCalderaro/SekaiPop)) adds its own changes on top. Thank you, and go star the original.
 - **[end4](https://github.com/end-4)** and [dots-hyprland](https://github.com/end-4/dots-hyprland) (Illogical Impulse): the foundation of this whole shell. The Hyprland configuration in `hypr/` is adapted from it, the installer follows the idea of `./setup install`, and the Anti-Flashbang shaders are copied unchanged (GPL-3.0). The cheat sheet, the Overview and the way Settings is organised also take after it.
 - **[pCtrade](https://github.com/pctrade)** (end4-pC): the inspiration for how customizable this shell is, and for his support along the way. The `aurora`, `dots`, `mirror` and `ring` audio visualizers are ported from his work.
 - **[p3dro](https://github.com/P3DROVFX)**'s fork of Illogical Impulse: the Discord Voice service the bar pill and popup are ported from.

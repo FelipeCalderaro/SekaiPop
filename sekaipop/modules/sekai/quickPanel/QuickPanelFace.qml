@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import QtQuick.Effects
 import "../../common/functions/QuickTiles.js" as QT
+import "../../common/functions/IdleSteps.js" as IS
 import "../../common/functions/ImageMath.js" as IM
 import qs.modules.common
 import qs.modules.common.widgets
@@ -130,6 +131,14 @@ Item {
     // Night Light's card (right-click the tile): how warm it goes (Kelvin)
     // and the Automatic schedule (hours of day). Owned by QuickSource.qml.
     property bool nightLightDialogOpen: false
+    // Idle & Sleep (Settings > General > Idle & sleep's times, in minutes, 0 = never)
+    property bool idleDialogOpen: false
+    property int idleLock: 5
+    property int idleScreenOff: 10
+    property int idleSleep: 15
+    property string idleSleepAction: "suspend"
+    property bool idleLinked: true
+    property bool idleCanHibernate: true
     property int nightLightTemperature: 4500
     property bool nightLightAuto: false
     property int nightLightAutoFrom: 20
@@ -279,6 +288,7 @@ Item {
     signal nightLightTemperatureMoved(int kelvin)
     signal nightLightAutoRequested(bool on)
     signal nightLightScheduleRequested(int from, int to)
+    signal idleSettingRequested(string key, var value)
     signal gameModeToggled()
     signal darkModeToggled()
     signal easyEffectsToggled()
@@ -1082,6 +1092,7 @@ Item {
             face.networkDialogOpen = false
             face.bluetoothDialogOpen = false
             face.nightLightDialogOpen = false
+            face.idleDialogOpen = false
             face.audioDialogKind = ""
         }
     }
@@ -1198,6 +1209,7 @@ Item {
         case "powerProfile": return "Power Profile"
         case "musicRecognition": return "Music Recognition"
         case "antiFlashbang": return "Anti-Flashbang"
+        case "idle": return "Idle & Sleep"
         }
         return ""
     }
@@ -1244,6 +1256,7 @@ Item {
         case "powerProfile": return face.powerProfileName === "saver" ? "Saver" : (face.powerProfileName === "performance" ? "Performance" : "Balanced")
         case "musicRecognition": return face.musicListening ? "Listening…" : "Tap"
         case "antiFlashbang": return face.antiFlashbangLevel === 1 ? "Weak" : (face.antiFlashbangLevel === 2 ? "Strong" : "OFF")
+        case "idle": return IS.summary(face.idleLock, face.idleScreenOff, face.idleSleep, face.idleSleepAction)
         }
         return ""
     }
@@ -1271,6 +1284,7 @@ Item {
         case "powerProfile": return face.powerProfileName === "saver" ? "energy_savings_leaf" : (face.powerProfileName === "performance" ? "speed" : "balance")
         case "musicRecognition": return "music_cast"
         case "antiFlashbang": return "flash_off"
+        case "idle": return "lock_clock"
         }
         return ""
     }
@@ -1300,6 +1314,8 @@ Item {
         case "powerProfile": face.powerProfileCycled(); break
         case "musicRecognition": face.musicRecognitionToggled(); break
         case "antiFlashbang": face.antiFlashbangToggled(); break
+        // no on / off of its own (that is Keep Awake): a click opens its card
+        case "idle": face.closeDialogs(); face.idleDialogOpen = true; break
         case "screenSnip":
         case "colorPicker":
             face.panelCloseRequested()
@@ -1316,6 +1332,7 @@ Item {
         face.networkDialogOpen = false
         face.bluetoothDialogOpen = false
         face.nightLightDialogOpen = false
+        face.idleDialogOpen = false
         face.powerMenuOpen = false
         face.audioDialogKind = ""
     }
@@ -1327,6 +1344,9 @@ Item {
         } else if (id === "bluetooth") {
             face.closeDialogs()
             face.bluetoothDialogOpen = true
+        } else if (id === "idle") {
+            face.closeDialogs()
+            face.idleDialogOpen = true
         } else if (id === "nightLight") {
             face.closeDialogs()
             face.nightLightDialogOpen = true
@@ -2535,6 +2555,19 @@ Item {
         onTemperatureMoved: kelvin => face.nightLightTemperatureMoved(kelvin)
         onAutoRequested: on => face.nightLightAutoRequested(on)
         onScheduleRequested: (from, to) => face.nightLightScheduleRequested(from, to)
+    }
+
+    IdleDialog {
+        id: idleDialog
+        open: face.idleDialogOpen
+        lock: face.idleLock
+        screenOff: face.idleScreenOff
+        sleep: face.idleSleep
+        sleepAction: face.idleSleepAction
+        linked: face.idleLinked
+        canHibernate: face.idleCanHibernate
+        onCloseRequested: face.idleDialogOpen = false
+        onSettingRequested: (key, value) => face.idleSettingRequested(key, value)
     }
 
     // ===== Power menu scrim =====

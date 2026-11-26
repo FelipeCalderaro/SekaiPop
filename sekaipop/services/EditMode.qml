@@ -75,7 +75,24 @@ Singleton {
     property real menuY: 0
 
     // ===== layout =====
-    readonly property real trayHeight: 220       // the strip the shelf takes, gap included
+    // A narrow main monitor (a portrait one, a small laptop; under `compactWidth` design pixels):
+    // the shelf stacks its side columns (title + how-to, the tabs, Lock all / Done) into two
+    // rows above a full-width content area instead of squeezing the content between them
+    // (EditTray.qml). Taller, so the desktop card above leaves it more room.
+    readonly property real compactWidth: 1400
+    readonly property bool compactShelf: {
+        const s = Quickshell.screens.find(x => x.name === root.screenName)
+        return !!s && s.width / ShellScale.forScreen(s) < root.compactWidth
+    }
+    // Narrower still (title + six tabs + Lock all / Done no longer share a row, under
+    // `tightWidth`): the tabs get a row of their own (+ 70 tall).
+    readonly property real tightWidth: 1044
+    readonly property bool compactTight: {
+        const s = Quickshell.screens.find(x => x.name === root.screenName)
+        return !!s && s.width / ShellScale.forScreen(s) < root.tightWidth
+    }
+    // The strip the shelf takes, gap included.
+    readonly property real trayHeight: root.compactShelf ? (root.compactTight ? 416 : 346) : 220
     readonly property real frameWidth: 14        // navy outline + white ring around the card
     readonly property real cardRadius: 22        // the card's own corner
     readonly property real gap: 22               // space between the frame and whatever is next to it

@@ -341,12 +341,12 @@ button[class*="lookFilled"] svg, button[class*="lookOutlined"] svg { color: var(
     background-image: var(--pj-sel-grad);
 }
 
-/* floating things: menus, popouts, modals. Outline + an ordinary soft elevation shadow. */
+/* floating things: menus, popouts, modals. Outline + the hard shadow straight down, like every block. */
 [role="menu"], [class*="popout_"], [class*="root_"][role="dialog"] {
     background: var(--pj-s2);
     border: 2px solid var(--pj-edge);
     border-radius: var(--pj-card-r);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+    box-shadow: 0 var(--pj-sh) 0 var(--pj-shadow);
     outline: 0;
 }
 /* quick switcher (Ctrl+K): no frame behind the search pill, so the pill floats on the dimmed screen.
@@ -399,6 +399,23 @@ body {
     :is([class^="bg_"], [class*=" bg_"]) { background: var(--pj-desk); }
     /* the channel header is a card of its own: keep its corners matching */
     [class*="subtitleContainer_"] { border-radius: var(--pj-card-r); }
+    /* every main card is a block: its outline (system24's, in --pj-edge) and the hard shadow
+       straight down, like the shell's popup cards (no ring: a card's ring doesn't show) */
+    :is(
+        [class*="guilds_"], [class*="sidebarList_"], [class*="panels_"], [class*="subtitleContainer_"],
+        [class*="peopleColumn_"], [class*="nowPlayingColumn_"], [class*="callContainer_"],
+        [class*="searchResultsWrap_"],
+        [class*="membersWrap_"] > [class*="container_"],
+        [class*="membersWrap_"]:not(:has(> [class*="container_"]))
+    ) {
+        box-shadow: 0 var(--pj-sh) 0 var(--pj-shadow);
+    }
+}
+/* separated chat bar: messages and the input are two cards, both blocks */
+@container body style(--pj-layout: floating) and style(--pj-chatbar: separated) {
+    :is([class*="messagesWrapper_"], #app-mount [class*="channelTextArea_"]) {
+        box-shadow: 0 var(--pj-sh) 0 var(--pj-shadow);
+    }
 }
 
 /* mention / reply edge: the workspace-pill gradient */

@@ -1970,7 +1970,10 @@ Scope {
 
     Process {
         id: powerOffAction
-        command: ["sh", "-c", "systemctl poweroff || loginctl poweroff"]
+        // `poweroff` straight away: `systemctl poweroff` could go through logind as a
+        // scheduled shutdown (with its wall message) instead of powering off now.
+        // PowerMenu.qml already asked for a second click before getting here.
+        command: ["sh", "-c", "poweroff || loginctl poweroff"]
     }
 
     Process {

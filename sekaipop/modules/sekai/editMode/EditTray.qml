@@ -170,6 +170,58 @@ PanelWindow {
         }
     }
 
+    // A narrow monitor (a portrait one): the shelf stacks instead of squeezing (EditMode.compactShelf).
+    readonly property bool compact: EditMode.compactShelf
+    // Narrower still: the tabs take a row of their own under the title and Lock all / Done.
+    readonly property bool tight: win.compact && EditMode.compactTight
+    // Where the how-to row starts when narrow: under the top row, or under the tabs' own row.
+    readonly property real hintRowY: win.tight ? 14 + 62 + 8 + 62 + 8 : 14 + 62 + 8
+    readonly property real infoHeight: 38 + 3 * 26 + 3 * 6
+
+    // The three how-to lines for what is showing: { key, icon, label } each. One place, so the
+    // wide shelf (a column on the left) and the narrow one (a row under the tabs) say the same.
+    function hint(i) {
+        const framing = PanelImages.framing !== ""
+        const tuning = win.tab === "theme" && themeBoard.tuning
+        if (i === 0)
+            return {
+                key: framing ? "" : (win.tab === "bar" ? "" : "L"),
+                icon: framing ? "open_with" : (win.tab === "bar" ? "open_with" : ""),
+                label: framing ? "Drag: move the picture"
+                    : win.tab === "bar" ? "Drag: move, or into OFF"
+                    : (tuning ? "Click: changes it live"
+                    : win.tab === "theme" ? "Click: wear this theme"
+                    : (win.tab === "presets" ? "Click: wear this look"
+                    : (win.pickTab ? "Click: change it" : "Left click: add / edit")))
+            }
+        if (i === 1)
+            return {
+                key: framing ? "" : (win.tab === "bar" ? "L" : (tuning ? "Esc" : (win.tab === "theme" || win.pickTab ? "" : "R"))),
+                icon: framing ? "mouse" : (tuning ? "" : (win.tab === "theme" || win.pickTab ? "mouse" : "")),
+                label: framing ? "Wheel: zoom in and out"
+                    : win.tab === "bar" ? "Click: next zone / back on"
+                    : (tuning ? "Back to the themes"
+                    : win.tab === "theme" ? "Wheel: more themes"
+                    : (win.tab === "presets" ? "Right click twice: delete"
+                    : (win.pickTab ? "Hover: see its name" : "Right click: remove")))
+            }
+        // THEME: "Matugen: from wallpaper", or, while it is the theme on, how to reach its
+        // controls; in the controls, what the pin does.
+        const matugenOn = ThemeService.themeFor(themeBoard.screenName) === "matugen" && ThemeService.matugenInstalled
+        return {
+            key: framing ? "Esc" : (win.tab === "bar" ? "R" : (win.tab === "theme" && !tuning && matugenOn ? "L" : "")),
+            icon: framing ? "" : win.tab === "bar" ? ""
+                : (win.tab === "theme" ? (tuning ? "push_pin" : (matugenOn ? "" : "wallpaper"))
+                : (win.tab === "presets" ? "sync" : (win.pickTab ? "check" : "open_with"))),
+            label: framing ? "Esc: cancel, as it was"
+                : win.tab === "bar" ? "Right click: remove"
+                : (tuning ? "Pin: keep an accent"
+                : win.tab === "theme" && matugenOn ? "Matugen again: tune it"
+                : win.tab === "theme" ? "Matugen: from wallpaper"
+                : (win.tab === "presets" ? "Hover: save over it" : (win.pickTab ? "Applies at once" : "Drag: move")))
+        }
+    }
+
     function titleOf(id) {
         for (const w of EditMode.shelfList) {
             if (w.id === id)
@@ -323,7 +375,9 @@ PanelWindow {
 
             x: 22
             width: parent.width - 44
-            height: 192
+            // Narrow: + the top row (62), the how-to row (26) and their gaps above the content;
+            // narrower still, + the tabs' own row (62 + 8).
+            height: win.tight ? 388 : (win.compact ? 318 : 192)
             y: parent.height - 14 - tray.height + tray.slide
 
             cornerRadius: mt.radiusOuter
@@ -332,137 +386,120 @@ PanelWindow {
             ringColorBottom: ringColorTop
             fillColor: mt.pSurface
 
-            // ===== left =====
-            Column {
-                id: info
+            // ===== left (wide) / the start of the top row (narrow): the title =====
+            // Wide: a column with the how-to under it, centred on the shelf. Narrow: the left of
+            // the top row, beside the tabs; the how-to goes to its own row (hintGrid).
+            Item {
+                id: infoHead
                 x: 16
-                anchors.verticalCenter: parent.verticalCenter
-                width: 214
-                spacing: 6
+                y: win.compact ? 14 + (62 - height) / 2 : (tray.height - win.infoHeight) / 2
+                width: win.tight ? Math.max(120, actions.x - 14 - 16)
+                : (win.compact ? Math.max(120, tabs.x - 14 - 16) : 214)
+                height: 38
 
-                Item {
-                    width: info.width
-                    height: 38
+                Rectangle {
+                    id: headDiamond
+                    x: 4
+                    y: 4
+                    width: 16
+                    height: 16
+                    radius: 4
+                    rotation: 45
+                    color: mt.accentMint
+                    border.width: 2
+                    border.color: mt.pLine
+                    antialiasing: true
+                }
 
-                    Rectangle {
-                        id: headDiamond
-                        x: 4
-                        y: 4
-                        width: 16
-                        height: 16
-                        radius: 4
-                        rotation: 45
-                        color: mt.accentMint
-                        border.width: 2
-                        border.color: mt.pLine
-                        antialiasing: true
-                    }
+                Text {
+                    anchors.left: headDiamond.right
+                    anchors.leftMargin: 12
+                    anchors.verticalCenter: headDiamond.verticalCenter
+                    text: "EDIT DESKTOP"
+                    color: mt.pInk
+                    font.family: mt.fontFamily
+                    font.pixelSize: 17
+                    font.weight: Font.ExtraBold
+                    font.styleName: mt.fontStyleBold
+                }
 
-                    Text {
-                        anchors.left: headDiamond.right
-                        anchors.leftMargin: 12
-                        anchors.verticalCenter: headDiamond.verticalCenter
-                        text: "EDIT DESKTOP"
-                        color: mt.pInk
-                        font.family: mt.fontFamily
-                        font.pixelSize: 17
-                        font.weight: Font.ExtraBold
-                        font.styleName: mt.fontStyleBold
-                    }
+                // Matugen re-running while its controls are up: the shell's busy glyph
+                // in front of the line below.
+                MaterialIcon {
+                    id: busyGlyph
+                    visible: win.tab === "theme" && themeBoard.tuning && ThemeService.matugenBusy
+                    y: 25
+                    name: "sync"
+                    size: 13
+                    weight: 700
+                    color: mt.pInk
+                    transformOrigin: Item.Center
 
-                    // Matugen re-running while its controls are up: the shell's busy glyph
-                    // in front of the line below.
-                    MaterialIcon {
-                        id: busyGlyph
-                        visible: win.tab === "theme" && themeBoard.tuning && ThemeService.matugenBusy
-                        y: 25
-                        name: "sync"
-                        size: 13
-                        weight: 700
-                        color: mt.pInk
-                        transformOrigin: Item.Center
-
-                        RotationAnimator on rotation {
-                            running: busyGlyph.visible
-                            loops: Animation.Infinite
-                            from: 0
-                            to: 360
-                            duration: 800
-                        }
-                    }
-
-                    // What is going on, in a few words.
-                    Text {
-                        x: busyGlyph.visible ? 19 : 0
-                        y: 25
-                        width: parent.width - x
-                        elide: Text.ElideRight
-                        text: PanelImages.framing !== ""
-                            ? "Framing: pick the part that shows."
-                            : win.tab === "theme" && themeBoard.tuning
-                            ? (ThemeService.matugenBusy ? "Re-colouring from the wallpaper\u2026" : "Tune the wallpaper colours.")
-                            : win.tab === "theme"
-                            ? "Pick the colours the shell wears."
-                            : win.tab === "presets"
-                            ? "Save the whole look, wear it again."
-                            : win.tab === "bar"
-                            ? "Its look, its edge, and what sits on it."
-                            : win.tab === "dock"
-                            ? "Its look, where it sits, when it hides."
-                            : win.tab === "views"
-                            ? "The phone, the overview, and the bar's workspaces."
-                            : (EditMode.editTarget !== ""
-                            ? "Editing " + win.titleOf(EditMode.editTarget) + " \u2014 click the card to let go"
-                            : "Pick it, place it, tweak it.")
-                        color: (win.tab === "widgets" && EditMode.editTarget !== "") || (win.tab === "theme" && themeBoard.tuning && ThemeService.matugenBusy)
-                            ? mt.pInk : mt.pInkSub
-                        font.family: mt.fontFamily
-                        font.pixelSize: 11
-                        font.weight: Font.DemiBold
+                    RotationAnimator on rotation {
+                        running: busyGlyph.visible
+                        loops: Animation.Infinite
+                        from: 0
+                        to: 360
+                        duration: 800
                     }
                 }
 
-                HintRow {
-                    keyText: PanelImages.framing !== "" ? "" : (win.tab === "bar" ? "" : "L")
-                    keyIcon: PanelImages.framing !== "" ? "open_with" : (win.tab === "bar" ? "open_with" : "")
-                    label: PanelImages.framing !== "" ? "Drag: move the picture"
-                        : win.tab === "bar" ? "Drag: move, or into OFF"
-                        : (win.tab === "theme" && themeBoard.tuning ? "Click: changes it live"
-                        : win.tab === "theme" ? "Click: wear this theme"
-                        : (win.tab === "presets" ? "Click: wear this look"
-                        : (win.pickTab ? "Click: change it" : "Left click: add / edit")))
+                // What is going on, in a few words.
+                Text {
+                    x: busyGlyph.visible ? 19 : 0
+                    y: 25
+                    width: parent.width - x
+                    elide: Text.ElideRight
+                    text: PanelImages.framing !== ""
+                        ? "Framing: pick the part that shows."
+                        : win.tab === "theme" && themeBoard.tuning
+                        ? (ThemeService.matugenBusy ? "Re-colouring from the wallpaper\u2026" : "Tune the wallpaper colours.")
+                        : win.tab === "theme"
+                        ? "Pick the colours the shell wears."
+                        : win.tab === "presets"
+                        ? "Save the whole look, wear it again."
+                        : win.tab === "bar"
+                        ? "Its look, its edge, and what sits on it."
+                        : win.tab === "dock"
+                        ? "Its look, where it sits, when it hides."
+                        : win.tab === "views"
+                        ? "The phone, the overview, and the bar's workspaces."
+                        : (EditMode.editTarget !== ""
+                        ? "Editing " + win.titleOf(EditMode.editTarget) + " \u2014 click the card to let go"
+                        : "Pick it, place it, tweak it.")
+                    color: (win.tab === "widgets" && EditMode.editTarget !== "") || (win.tab === "theme" && themeBoard.tuning && ThemeService.matugenBusy)
+                        ? mt.pInk : mt.pInkSub
+                    font.family: mt.fontFamily
+                    font.pixelSize: 11
+                    font.weight: Font.DemiBold
+                }
                 }
 
-                HintRow {
-                    keyText: PanelImages.framing !== "" ? "" : (win.tab === "bar" ? "L" : (win.tab === "theme" && themeBoard.tuning ? "Esc" : (win.tab === "theme" || win.pickTab ? "" : "R")))
-                    keyIcon: PanelImages.framing !== "" ? "mouse" : (win.tab === "theme" && themeBoard.tuning ? "" : (win.tab === "theme" || win.pickTab ? "mouse" : ""))
-                    label: PanelImages.framing !== "" ? "Wheel: zoom in and out"
-                        : win.tab === "bar" ? "Click: next zone / back on"
-                        : (win.tab === "theme" && themeBoard.tuning ? "Back to the themes"
-                        : win.tab === "theme" ? "Wheel: more themes"
-                        : (win.tab === "presets" ? "Right click twice: delete"
-                        : (win.pickTab ? "Hover: see its name" : "Right click: remove")))
-                }
+            // The how-to: three lines, a keycap then what it does. Wide: under the title.
+            // Narrow: one row of three under the top row, in the same order.
+            Grid {
+                id: hintGrid
+                x: 16
+                y: win.compact ? win.hintRowY : infoHead.y + infoHead.height + 6
+                columns: win.compact ? 3 : 1
+                columnSpacing: 18
+                rowSpacing: 6
 
-                // THEME: "Matugen: from wallpaper", or, while it is the theme on, how to reach
-                // its controls; in the controls, what the pin does.
-                HintRow {
-                    readonly property bool matugenOn: ThemeService.themeFor(themeBoard.screenName) === "matugen" && ThemeService.matugenInstalled
-                    keyText: PanelImages.framing !== "" ? "Esc" : (win.tab === "bar" ? "R" : (win.tab === "theme" && !themeBoard.tuning && matugenOn ? "L" : ""))
-                    keyIcon: PanelImages.framing !== "" ? "" : win.tab === "bar" ? ""
-                        : (win.tab === "theme" ? (themeBoard.tuning ? "push_pin" : (matugenOn ? "" : "wallpaper"))
-                        : (win.tab === "presets" ? "sync" : (win.pickTab ? "check" : "open_with")))
-                    label: PanelImages.framing !== "" ? "Esc: cancel, as it was"
-                        : win.tab === "bar" ? "Right click: remove"
-                        : (win.tab === "theme" && themeBoard.tuning ? "Pin: keep an accent"
-                        : win.tab === "theme" && matugenOn ? "Matugen again: tune it"
-                        : win.tab === "theme" ? "Matugen: from wallpaper"
-                        : (win.tab === "presets" ? "Hover: save over it" : (win.pickTab ? "Applies at once" : "Drag: move")))
+                Repeater {
+                    model: 3
+                    delegate: HintRow {
+                        required property int index
+                        readonly property var h: win.hint(index)
+                        keyText: h.key
+                        keyIcon: h.icon
+                        label: h.label
+                    }
                 }
             }
 
             Rectangle {
                 id: dividerLeft
+                visible: !win.compact
                 x: 16 + 214 + 14
                 anchors.verticalCenter: parent.verticalCenter
                 width: 2
@@ -472,20 +509,22 @@ PanelWindow {
             }
 
             // ===== right: Lock all and Done =====
-            Column {
+            Grid {
                 id: actions
                 anchors.right: parent.right
                 anchors.rightMargin: 16
-                anchors.verticalCenter: parent.verticalCenter
-                width: 170
-                spacing: 12
+                anchors.verticalCenter: win.compact ? undefined : parent.verticalCenter
+                y: win.compact ? 14 + (62 - 54) / 2 : 0
+                columns: win.compact ? 2 : 1
+                columnSpacing: 8
+                rowSpacing: 12
 
                 // Locks every widget at once. Locked widgets can't be moved on the
                 // normal desktop; here, while editing, they can always be dragged,
                 // and the lock applies again after Done.
                 Item {
                     id: lockTile
-                    width: actions.width
+                    width: win.compact ? 128 : 170
                     height: 54
 
                     Gradient {
@@ -505,7 +544,7 @@ PanelWindow {
                         fillGradient: EditMode.widgetsLocked ? lockFill : null
 
                         MaterialIcon {
-                            x: 12
+                            x: win.compact ? 10 : 12
                             anchors.verticalCenter: parent.verticalCenter
                             name: EditMode.widgetsLocked ? "lock" : "lock_open"
                             size: 22
@@ -514,7 +553,7 @@ PanelWindow {
                         }
 
                         Column {
-                            x: 44
+                            x: win.compact ? 38 : 44
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 0
 
@@ -528,7 +567,9 @@ PanelWindow {
                                 font.letterSpacing: 0.8
                             }
 
+                            // (Narrow: the name alone; the icon and the lit fill say which way it is.)
                             Text {
+                                visible: !win.compact
                                 text: EditMode.widgetsLocked ? "stay put after Done" : "free on the desktop"
                                 color: EditMode.widgetsLocked ? mt.colBorder : mt.pInkSub
                                 font.family: mt.fontFamily
@@ -550,7 +591,7 @@ PanelWindow {
 
                 Item {
                     id: doneTile
-                    width: actions.width
+                    width: win.compact ? 104 : 170
                     height: 54
 
                     Pill {
@@ -603,6 +644,7 @@ PanelWindow {
 
             Rectangle {
                 id: dividerRight
+                visible: !win.compact
                 anchors.right: actions.left
                 anchors.rightMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
@@ -614,13 +656,18 @@ PanelWindow {
 
             // ===== the tabs =====
             // A 3 x 2 block of big keys: the shelf is only 192 tall, so six in a column
-            // could not be any bigger than they were.
+            // could not be any bigger than they were. On a narrow shelf, one row of six on top.
             Grid {
                 id: tabs
-                anchors.left: dividerLeft.right
+                anchors.left: win.compact ? undefined : dividerLeft.right
                 anchors.leftMargin: 14
-                anchors.verticalCenter: parent.verticalCenter
-                columns: 3
+                anchors.verticalCenter: win.compact ? undefined : parent.verticalCenter
+                // Narrow: centred on the shelf, but never under the title or Lock all / Done.
+                x: win.tight ? Math.max(16, (tray.width - tabs.width) / 2)
+                    : (win.compact ? Math.min(Math.max(16 + 120 + 14, (tray.width - tabs.width) / 2),
+                                              actions.x - 14 - tabs.width) : 0)
+                y: win.tight ? 14 + 62 + 8 : (win.compact ? 14 : 0)
+                columns: win.compact ? 6 : 3
                 spacing: 8
 
                 TabKey {
@@ -681,43 +728,58 @@ PanelWindow {
                 }
             }
 
+            // ===== where the tabs' content goes =====
+            Item {
+                id: contentArea
+                readonly property real wideLeft: tabs.x + tabs.width + 14
+                x: win.compact ? 16 : wideLeft
+                y: win.compact ? tray.height - 192 : 0
+                width: win.compact ? tray.width - 32 : Math.max(0, dividerRight.x - 14 - wideLeft)
+                height: win.compact ? 192 : tray.height
+            }
+
+            // Narrow: a line between the top rows and the content (the wide shelf's dividers, lying down).
+            Rectangle {
+                visible: win.compact
+                x: 16
+                y: contentArea.y - 6
+                width: tray.width - 32
+                height: 2
+                radius: 1
+                color: mt.pSurfaceDivider
+            }
+
             // ===== the bar tab =====
             EditBarLayout {
                 id: barEditor
                 visible: win.tab === "bar"
-                anchors.left: tabs.right
-                anchors.leftMargin: 14
-                anchors.right: dividerRight.left
-                anchors.rightMargin: 14
-                anchors.top: parent.top
+                anchors.left: contentArea.left
+                anchors.right: contentArea.right
+                anchors.top: contentArea.top
                 anchors.topMargin: 14
-                anchors.bottom: parent.bottom
+                anchors.bottom: contentArea.bottom
                 anchors.bottomMargin: 14
             }
 
             // ===== the dock tab =====
             EditDockBoard {
                 visible: win.tab === "dock"
-                anchors.left: tabs.right
-                anchors.leftMargin: 14
-                anchors.right: dividerRight.left
-                anchors.rightMargin: 14
-                anchors.top: parent.top
+                anchors.left: contentArea.left
+                anchors.right: contentArea.right
+                anchors.top: contentArea.top
                 anchors.topMargin: 14
-                anchors.bottom: parent.bottom
+                anchors.bottom: contentArea.bottom
                 anchors.bottomMargin: 14
             }
 
             // ===== the views tab =====
             EditViewsBoard {
                 visible: win.tab === "views"
-                anchors.left: tabs.right
-                anchors.leftMargin: 14
-                anchors.right: dividerRight.left
-                anchors.rightMargin: 14
-                anchors.top: parent.top
+                anchors.left: contentArea.left
+                anchors.right: contentArea.right
+                anchors.top: contentArea.top
                 anchors.topMargin: 14
-                anchors.bottom: parent.bottom
+                anchors.bottom: contentArea.bottom
                 anchors.bottomMargin: 14
             }
 
@@ -725,12 +787,10 @@ PanelWindow {
             EditThemeBoard {
                 id: themeBoard
                 visible: win.tab === "theme"
-                anchors.left: tabs.right
-                anchors.leftMargin: 14
-                anchors.right: dividerRight.left
-                anchors.rightMargin: 14
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
+                anchors.left: contentArea.left
+                anchors.right: contentArea.right
+                anchors.top: contentArea.top
+                anchors.bottom: contentArea.bottom
 
                 // The Matugen controls' hex field took the keyboard; give it back.
                 onFinished: escKeys.forceActiveFocus()
@@ -739,12 +799,10 @@ PanelWindow {
             // ===== the presets tab =====
             EditPresetBoard {
                 visible: win.tab === "presets"
-                anchors.left: tabs.right
-                anchors.leftMargin: 14
-                anchors.right: dividerRight.left
-                anchors.rightMargin: 14
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
+                anchors.left: contentArea.left
+                anchors.right: contentArea.right
+                anchors.top: contentArea.top
+                anchors.bottom: contentArea.bottom
 
                 // The name field took the keyboard; give it back so Esc
                 // still leaves Edit Desktop.
@@ -755,12 +813,10 @@ PanelWindow {
             Flickable {
                 id: shelf
                 visible: win.tab === "widgets"
-                anchors.left: tabs.right
-                anchors.leftMargin: 14
-                anchors.right: dividerRight.left
-                anchors.rightMargin: 14
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
+                anchors.left: contentArea.left
+                anchors.right: contentArea.right
+                anchors.top: contentArea.top
+                anchors.bottom: contentArea.bottom
 
                 // Room around the row: a slot's tilt, hover lift, corner badge
                 // and name tag all poke out past its frame, so the row sits

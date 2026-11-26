@@ -43,6 +43,9 @@ Item {
     property real roundWidth: 74
     property bool on: false
     property bool hoverLights: false
+    // The ON look in red instead of mint/cyan: a press that waits for a second one
+    // (the Power rail's Shut down, see PowerMenu.qml).
+    property bool danger: false
     property bool keyFocused: false
     property string label: ""
     property string subtitle: ""
@@ -217,8 +220,8 @@ Item {
             anchors.fill: parent
             radius: parent.radius
             gradient: Gradient {
-                GradientStop { position: 0.0; color: mt.accentMint }
-                GradientStop { position: 1.0; color: mt.accentCyan }
+                GradientStop { position: 0.0; color: root.danger ? "#ff5a7a" : mt.accentMint }
+                GradientStop { position: 1.0; color: root.danger ? "#d83a5c" : mt.accentCyan }
             }
             opacity: root.litP
             antialiasing: true

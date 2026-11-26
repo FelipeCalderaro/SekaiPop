@@ -76,7 +76,7 @@ Item {
     // ===== pages =====
     readonly property var pages: [
         { id: "quick", icon: "instant_mix", label: "Quick", title: "Quick", sub: "The things you reach for most" },
-        { id: "general", icon: "tune", label: "General", title: "General", sub: "How the shell behaves" },
+        { id: "general", icon: "tune", label: "General", title: "General", sub: "How the shell behaves · idle & sleep, sounds" },
         { id: "bar", icon: "toast", label: "Bar", title: "Bar", sub: "Where it sits and what it carries" },
         { id: "desktop", icon: "desktop_windows", label: "Desktop", title: "Desktop", sub: "Wallpaper, widgets and effects" },
         { id: "hyprland", icon: "grid_view", label: "Hyprland", title: "Hyprland", sub: "Windows, workspaces and input" },

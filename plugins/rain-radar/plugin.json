@@ -1,0 +1,90 @@
+{
+    "id": "rain-radar",
+    "name": "Rain Radar",
+    "version": "1.0.0",
+    "api": 1,
+    "description": "The rain radar around you, the last two hours as a loop, on a map. From RainViewer (no account, no key).",
+    "icon": "radar",
+    "settings": {
+        "place": "Berlin",
+        "zoom": 6,
+        "colors": "2",
+        "smooth": true,
+        "snow": true,
+        "width": 340,
+        "height": 240,
+        "speedMs": 500
+    },
+    "settingsInfo": {
+        "place": {
+            "label": "Place",
+            "description": "A city (looked up with Open-Meteo, like the weather card), or lat, lon: 52.52, 13.41.",
+            "group": "Map"
+        },
+        "zoom": {
+            "label": "Zoom",
+            "description": "3 shows a continent, 7 a region (RainViewer's free radar stops at 7).",
+            "min": 3,
+            "max": 7,
+            "group": "Map"
+        },
+        "colors": {
+            "label": "Radar colours",
+            "choices": [
+                {
+                    "value": "2",
+                    "label": "Universal blue"
+                },
+                {
+                    "value": "4",
+                    "label": "The Weather Channel"
+                },
+                {
+                    "value": "6",
+                    "label": "NEXRAD"
+                },
+                {
+                    "value": "8",
+                    "label": "Dark sky"
+                }
+            ],
+            "group": "Radar"
+        },
+        "smooth": {
+            "label": "Smooth edges",
+            "group": "Radar"
+        },
+        "snow": {
+            "label": "Show snow apart",
+            "group": "Radar"
+        },
+        "width": {
+            "label": "Width",
+            "min": 220,
+            "max": 720,
+            "step": 20,
+            "unit": "px",
+            "group": "Map"
+        },
+        "height": {
+            "label": "Height",
+            "min": 160,
+            "max": 540,
+            "step": 20,
+            "unit": "px",
+            "group": "Map"
+        },
+        "speedMs": {
+            "label": "Loop speed",
+            "min": 200,
+            "max": 1500,
+            "step": 100,
+            "unit": "ms a frame",
+            "group": "Radar"
+        }
+    },
+    "groups": [
+        "Map",
+        "Radar"
+    ]
+}

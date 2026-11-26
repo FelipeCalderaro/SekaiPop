@@ -14,7 +14,9 @@ const keys = T.match(/TabKey \{\s*icon: "[^"]+"\s*label: "[^"]+"/g) || []
 assert.strictEqual(keys.length, 6, 'six tab keys')
 assert.deepStrictEqual(keys.map(k => k.match(/label: "([^"]+)"/)[1]),
     ['WIDGETS', 'BAR', 'DOCK', 'VIEWS', 'THEME', 'PRESETS'], 'the order of the tabs')
-assert.ok(/columns: 3/.test(T), 'still three columns, so six keys make two full rows')
+// Wide shelf: three columns, so six keys make two full rows. Narrow shelf (a portrait monitor,
+// EditMode.compactShelf): all six in one row on top, above a full-width content area.
+assert.ok(/id: tabs[\s\S]*?columns: win\.compact \? 6 : 3/.test(T), 'three columns on the wide shelf, one row of six on the narrow one')
 assert.ok(/onActivated: \{\s*EditMode\.select\(""\)\s*win\.tab = "views"/.test(T), 'the key opens the tab and lets go of the widget being edited')
 assert.ok(/EditViewsBoard \{\s*visible: win\.tab === "views"/.test(T), 'the board shows on its tab only')
 assert.ok(/win\.tab === "views"\s*\? "[^"]+"/.test(T), 'the heading has a subtitle for it')

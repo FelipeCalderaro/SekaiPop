@@ -636,6 +636,13 @@ Item {
             MouseArea {
                 id: resetArea
                 anchors.fill: parent
+                // Tucked (icon only): a bigger target than the key, and its name on hover.
+                anchors.topMargin: root.keysTucked ? -9 : 0
+                anchors.bottomMargin: root.keysTucked ? -9 : 0
+                anchors.leftMargin: root.keysTucked ? -2 : 0
+                anchors.rightMargin: root.keysTucked ? -2 : 0
+                onContainsMouseChanged: containsMouse && root.keysTucked
+                    ? root.showTip("key:Reset the bar's layout", resetKey) : root.hideTip("key:Reset the bar's layout")
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton
                 cursorShape: Qt.PointingHandCursor
@@ -686,6 +693,12 @@ Item {
             MouseArea {
                 id: clearArea
                 anchors.fill: parent
+                anchors.topMargin: root.keysTucked ? -9 : 0
+                anchors.bottomMargin: root.keysTucked ? -9 : 0
+                anchors.leftMargin: root.keysTucked ? -2 : 0
+                anchors.rightMargin: root.keysTucked ? -2 : 0
+                onContainsMouseChanged: containsMouse && root.keysTucked
+                    ? root.showTip("key:Take everything off the bar", clearKey) : root.hideTip("key:Take everything off the bar")
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton
                 cursorShape: Qt.PointingHandCursor
@@ -736,7 +749,8 @@ Item {
         Text {
             id: tipText
             anchors.centerIn: parent
-            text: BarLayoutService.labelOf(root.tipId)
+            // A module's name, or ("key:<words>") the name of one of the tucked keys.
+            text: root.tipId.indexOf("key:") === 0 ? root.tipId.slice(4) : BarLayoutService.labelOf(root.tipId)
             color: mt.pInk
             font.family: mt.fontFamily
             font.pixelSize: 11

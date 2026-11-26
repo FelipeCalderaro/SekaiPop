@@ -4,6 +4,7 @@ import Qt.labs.folderlistmodel
 import Quickshell
 import Quickshell.Widgets
 import qs.services
+import "../../common/functions/WallpaperTarget.js" as WT
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.sekai.launcher
@@ -129,6 +130,29 @@ Item {
 
     // What is on this monitor right now.
     readonly property string desktopPath: WallpaperService.pathFor(face.screenName)
+
+    // ===== which monitor(s) a Set goes to (the viewer's "Set on" row) =====
+    // Shown with more than one monitor. The default is this monitor while One wallpaper per
+    // monitor is on, every monitor while it is off; a pick lasts while the board is open (and
+    // falls back to the default if that monitor goes away).
+    readonly property bool multiScreen: Quickshell.screens.length > 1
+    property string screenTargetPick: ""
+    readonly property string screenTarget: WT.resolve(face.screenTargetPick, Quickshell.screens.map(sc => sc.name),
+                                                      WallpaperService.perMonitor, face.screenName)
+    readonly property var targetScreens: Quickshell.screens.map(sc => ({
+        name: sc.name,
+        image: WallpaperService.imageFor(face.lockMode ? WallpaperService.lockPathFor(sc.name) : WallpaperService.pathFor(sc.name)),
+        here: sc.name === face.screenName
+    }))
+
+    // A Set on one monitor needs One wallpaper per monitor; turning it on first pins every other
+    // monitor to what it shows now (WallpaperService.pinMissing), so only the chosen one changes.
+    function applyTo(all, p, setter) {
+        const plan = WT.plan(face.screenTarget, all, Quickshell.screens.length, WallpaperService.perMonitor)
+        if (plan.turnOnPerMonitor)
+            WallpaperService.setPerMonitor(true)
+        setter(p, plan.screen)
+    }
     readonly property string lockPath: WallpaperService.lockPathFor(face.screenName)
     readonly property string currentPath: face.lockMode ? face.lockPath : face.desktopPath
     readonly property string otherPath: !WallpaperService.separateLock ? ""
@@ -484,10 +508,7 @@ Item {
         const p = (path !== undefined && path !== "") ? path : face.viewPath
         if (p === "")
             return
-        if (all)
-            WallpaperService.setWallpaper(p)
-        else
-            WallpaperService.setWallpaper(p, face.screenName)
+        face.applyTo(all, p, (path, screen) => WallpaperService.setWallpaper(path, screen))
         face.flash("desktop")
     }
 
@@ -504,10 +525,7 @@ Item {
         // desktop, so picking one here has to turn that on.
         if (!WallpaperService.separateLock)
             WallpaperService.setSeparateLock(true)
-        if (all)
-            WallpaperService.setLockWallpaper(p)
-        else
-            WallpaperService.setLockWallpaper(p, face.screenName)
+        face.applyTo(all, p, (path, screen) => WallpaperService.setLockWallpaper(path, screen))
         face.flash("lock")
     }
 
@@ -1803,10 +1821,21 @@ Item {
         // (they can wrap), instead of sitting at fixed heights.
         readonly property bool whDownloading: face.viewWh !== null && WallhavenService.fetching === face.viewWh.id
 
+        WallpaperMonitorTargets {
+            id: targets
+            visible: face.multiScreen
+            x: viewerArea.panelX
+            y: face.viewWh ? infoCol.y + infoCol.height + 14 : 214
+            width: viewerArea.panelW
+            screens: face.targetScreens
+            current: face.screenTarget
+            onPicked: id => face.screenTargetPick = id
+        }
+
         WallpaperActionKey {
             id: deskKey
             x: viewerArea.panelX
-            y: face.viewWh ? infoCol.y + infoCol.height + 14 : 214
+            y: targets.visible ? targets.y + targets.implicitHeight + 12 : (face.viewWh ? infoCol.y + infoCol.height + 14 : 214)
             capW: viewerArea.panelW - 8
             icon: viewerArea.whDownloading ? "download" : "desktop_windows"
             label: viewerArea.whDownloading
@@ -1820,7 +1849,7 @@ Item {
         WallpaperActionKey {
             id: lockKey
             x: viewerArea.panelX
-            y: face.viewWh ? deskKey.y + deskKey.implicitHeight + 10 : 312
+            y: face.viewWh || targets.visible ? deskKey.y + deskKey.implicitHeight + 10 : 312
             capW: viewerArea.panelW - 8
             icon: "lock"
             label: "Set as Lockscreen"
@@ -1832,7 +1861,7 @@ Item {
         Text {
             id: viewerNote
             x: viewerArea.panelX
-            y: face.viewWh ? lockKey.y + lockKey.implicitHeight + 10 : 410
+            y: face.viewWh || targets.visible ? lockKey.y + lockKey.implicitHeight + 10 : 410
             width: viewerArea.panelW
             wrapMode: Text.WordWrap
             color: mt.pInkSub
@@ -1845,8 +1874,8 @@ Item {
                     lines.push("Esc stops the download. It goes on when it\u2019s done.")
                 else if (face.viewWh && face.viewPath !== "")
                     lines.push("In your folder, sets at once: " + WallhavenService.fileNameOf(face.viewWh))
-                if (WallpaperService.perMonitor && face.screenName !== "")
-                    lines.push("Changes this monitor (" + face.screenName + ") only. Shift+click: every monitor.")
+                if (face.multiScreen)
+                    lines.push(WT.note(face.screenTarget, WallpaperService.perMonitor))
                 if (!WallpaperService.separateLock)
                     lines.push("Set as Lockscreen turns on a separate lockscreen wallpaper.")
                 return lines.join("\n")

@@ -138,6 +138,51 @@ SettingsPage {
         }
     }
 
+    // The same three times as General > Idle & sleep, here because they are what you reach for
+    // (docs/IDLE.md). 0 is Never.
+    SectionCard {
+        title: "Idle & sleep"
+
+        SettingStepper {
+            icon: "lock_clock"
+            label: "Lock after"
+            from: 0
+            to: 120
+            step: 1
+            suffix: " min"
+            specialValue: 0
+            specialText: "Never"
+            value: SettingsService.get("idle.lock")
+            onMoved: v => SettingsService.set("idle.lock", v)
+        }
+
+        SettingStepper {
+            icon: "desktop_access_disabled"
+            label: "Screen off after"
+            from: 0
+            to: 120
+            step: 1
+            suffix: " min"
+            specialValue: 0
+            specialText: "Never"
+            value: SettingsService.get("idle.screenOff")
+            onMoved: v => SettingsService.set("idle.screenOff", v)
+        }
+
+        SettingStepper {
+            icon: "bedtime"
+            label: SettingsService.get("idle.sleepAction") === "hibernate" ? "Hibernate after" : "Sleep after"
+            from: 0
+            to: 240
+            step: 5
+            suffix: " min"
+            specialValue: 0
+            specialText: "Never"
+            value: SettingsService.get("idle.sleep")
+            onMoved: v => SettingsService.set("idle.sleep", v)
+        }
+    }
+
     SectionCard {
         title: "Bar"
 

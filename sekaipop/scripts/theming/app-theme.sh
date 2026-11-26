@@ -10,7 +10,7 @@
 # Other states are off (no hook) and missing (Kitty absent and no hook).
 #   app-theme.sh check|enable|sync kitty           inspect, opt in, or refresh an existing Kitty hook
 #
-# Targets: kitty, foot, vscode, fuzzel, rofi, fish, prompt, hyprland.
+# Targets: kitty, foot, vscode, fuzzel, rofi, fish, prompt, hyprland, spotify.
 # Keys (all #rrggbb): bg fg cursor selbg selfg accent accent2 border surface
 #   hover muted, pill onpill shadow (the prompt's pills and their shadow), c0 .. c15
 #   (the 16 terminal colours), hlactive hlinactive (the
@@ -52,6 +52,11 @@
 #           entries back. A shell that is already open gets the new prompt when you open a new one
 #           (or run `exec fish`); after a revert an open shell falls back to fish's own prompt.
 #           Needs a Nerd Font in the terminal. fish only.
+#   spotify spotify-theme.py: a Spicetify theme ~/.config/spicetify/Themes/SekaiPop (color.ini from
+#           these colours, user.css = spotify-theme.user.css), selected with `spicetify config`;
+#           the previous theme settings are kept in ~/.local/state/sekaipop/spotify/ and put back by
+#           revert. Never restarts Spotify: `spicetify update` hot-reloads, Ctrl+Shift+R shows it.
+#           Needs Spicetify, and Spotify's folder writable (status "blocked" otherwise).
 
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -89,6 +94,15 @@ if [ "${2-}" = kitty ]; then
     esac
 fi
 kitty_status() { kitty_theme status || echo conflict; }
+
+# Spotify: all of it is spotify-theme.py (apply/sync/revert/status/print).
+if [ "${2-}" = spotify ]; then
+    cmd="$1"; shift 2
+    case "$cmd" in
+        apply|sync|revert|status|print) python3 -B "$here/spotify-theme.py" "$cmd" "$@"; exit $? ;;
+    esac
+fi
+spotify_status() { python3 -B "$here/spotify-theme.py" status 2>/dev/null || echo conflict; }
 
 # ===== arguments =====
 cmd="$1"; target="$2"
@@ -430,6 +444,36 @@ prompt_bin="$fish_state/prompt.sh"
 prompt_seq="$fish_state/prompt-sequences.txt"
 prompt_conf="$cfg/fish/conf.d/sekaipop-prompt.fish"
 prompt_indices="255 252 254 235 240 241 244 243"
+# bash: the same plates, from a file of ours that ONE managed block at the end of ~/.bashrc
+# sources. PROMPT_COMMAND prints the plate rows (the script's first rows) and PS1 is only the
+# arrow, with its colours inside \[ \] so readline knows how wide it is. The command time
+# comes from PS0, which writes $EPOCHREALTIME to a small file just before each command runs.
+prompt_bash="$fish_state/prompt.bash"
+bashrc="$HOME/.bashrc"
+
+prompt_bash_write() {
+    {
+        echo "# sekaipop: managed file, removed by Settings -> Desktop -> App colours (revert)"
+        echo "[[ \$- == *i* ]] || return 0"
+        echo "[ -f '$prompt_seq' ] && cat '$prompt_seq'"
+        echo "__sekaipop_tf=\"\${XDG_RUNTIME_DIR:-/tmp}/sekaipop-prompt-\$\$\""
+        echo "PS0='\$(printf %s \"\${EPOCHREALTIME/[.,]/}\" > \"\$__sekaipop_tf\")'"
+        echo "__sekaipop_prompt() {"
+        echo "    local st=\$? ms=0 t0 now out ac=243"
+        echo "    if [ -f \"\$__sekaipop_tf\" ]; then"
+        echo "        read -r t0 < \"\$__sekaipop_tf\"; rm -f \"\$__sekaipop_tf\""
+        echo "        now=\${EPOCHREALTIME/[.,]/}; ms=\$(( (now - t0) / 1000 ))"
+        echo "    fi"
+        echo "    if [ -f '$prompt_bin' ]; then"
+        echo "        out=\$(sh '$prompt_bin' \"\$st\" \"\$ms\" \"\$PWD\" \"\${COLUMNS:-80}\")"
+        echo "        printf '%s\\n' \"\${out%\$'\\n'*}\""
+        echo "        [ \"\$st\" -ne 0 ] && ac=244"
+        echo "        PS1=\"\\[\\e[1;38;5;\${ac}m\\] \$(printf '\\357\\201\\213')\\[\\e[0m\\] \""
+        echo "    fi"
+        echo "}"
+        echo "[[ \$PROMPT_COMMAND == *__sekaipop_prompt* ]] || PROMPT_COMMAND=\"__sekaipop_prompt\${PROMPT_COMMAND:+;\$PROMPT_COMMAND}\""
+    } > "$prompt_bash.tmp" && mv "$prompt_bash.tmp" "$prompt_bash"
+}
 
 # index colour, one pair per line: 255 the folder plate, 252 the git-branch plate, 254 the
 # command-time plate, 235 the dark ink on them, 240 the outline, 241 the hard shadow under them,
@@ -459,13 +503,23 @@ prompt_legacy_cleanup() {
 }
 
 prompt_apply() {
-    have fish || [ -d "$cfg/fish" ] || { echo "fish is not installed"; return 3; }
+    have fish || [ -d "$cfg/fish" ] || have bash || { echo "neither fish nor bash is installed"; return 3; }
     [ -f "$prompt_src" ] || { echo "prompt-sekaipop.sh is missing next to app-theme.sh" >&2; return 1; }
-    mkdir -p "$fish_state" "$cfg/fish/conf.d" || return 1
+    mkdir -p "$fish_state" || return 1
     prompt_legacy_cleanup
     cp "$prompt_src" "$prompt_bin.tmp" && chmod +x "$prompt_bin.tmp" && mv "$prompt_bin.tmp" "$prompt_bin" || return 1
     prompt_pairs | while read -r i c; do osc "4;$i" "$c"; done > "$prompt_seq.tmp" \
         && mv "$prompt_seq.tmp" "$prompt_seq" || return 1
+    if have bash; then
+        prompt_bash_write || return 1
+        grep -qF "$prompt_bash" "$bashrc" 2>/dev/null \
+            || block_add_end "$bashrc" "[ -f '$prompt_bash' ] && . '$prompt_bash'" || return 1
+    fi
+    if ! have fish && [ ! -d "$cfg/fish" ]; then
+        fish_push "$prompt_seq"
+        return 0
+    fi
+    mkdir -p "$cfg/fish/conf.d" || return 1
     # fish_prompt is (re)defined once now and once more before the first prompt, so a prompt
     # that config.fish sets up later (a `starship init fish | source`, say) does not win.
     {
@@ -496,7 +550,8 @@ prompt_apply() {
 
 prompt_revert() {
     prompt_legacy_cleanup
-    rm -f "$prompt_conf" "$prompt_bin" "$prompt_seq"
+    rm -f "$prompt_conf" "$prompt_bin" "$prompt_seq" "$prompt_bash"
+    block_remove "$bashrc"
     reset="$fish_state/prompt-reset.tmp"
     mkdir -p "$fish_state" 2>/dev/null
     for i in $prompt_indices; do osc 104 "$i"; done > "$reset" 2>/dev/null
@@ -506,8 +561,8 @@ prompt_revert() {
 }
 
 prompt_status() {
-    if [ -f "$prompt_conf" ]; then echo on
-    elif have fish || [ -d "$cfg/fish" ]; then echo off
+    if [ -f "$prompt_conf" ] || [ -f "$prompt_bash" ]; then echo on
+    elif have fish || [ -d "$cfg/fish" ] || have bash; then echo off
     else echo missing; fi
 }
 
@@ -581,7 +636,7 @@ case "$cmd" in
         exit $?
         ;;
     status)
-        for t in kitty foot vscode fuzzel rofi fish prompt hyprland; do printf '%s=%s\n' "$t" "$(${t}_status)"; done
+        for t in kitty foot vscode fuzzel rofi fish prompt hyprland spotify; do printf '%s=%s\n' "$t" "$(${t}_status)"; done
         ;;
     *)
         echo "usage: $0 apply <target> k=v ...|revert <target>|status" >&2

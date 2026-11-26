@@ -5,7 +5,8 @@ import Quickshell.Io
 import qs.modules.common
 
 // The shell's colours on other apps: terminals (kitty, foot), VS Code, the
-// launcher (fuzzel and rofi), the fish prompt and Hyprland's own window borders. Each has its own switch (Settings -> Desktop ->
+// launcher (fuzzel and rofi), the fish prompt, Hyprland's own window borders and Spotify
+// (a Spicetify theme; Discord has its own theme, ThemeService's discord part). Each has its own switch (Settings -> Desktop ->
 // App colours) and its own Revert, which takes everything it added away again.
 // The work is scripts/theming/app-theme.sh (its header lists exactly what is written
 // where); this file turns the active theme into the colours it needs and keeps
@@ -20,8 +21,8 @@ import qs.modules.common
 // part): those are written for every toolkit app; this is for apps that have
 // their own colour settings.
 //
-//   qs -c sekaipop ipc call apptheme apply kitty|foot|vscode|fish|prompt|launcher|hyprland|all
-//   qs -c sekaipop ipc call apptheme revert kitty|foot|vscode|fish|prompt|launcher|hyprland|all
+//   qs -c sekaipop ipc call apptheme apply kitty|foot|vscode|fish|prompt|launcher|hyprland|spotify|all
+//   qs -c sekaipop ipc call apptheme revert kitty|foot|vscode|fish|prompt|launcher|hyprland|spotify|all
 //   qs -c sekaipop ipc call apptheme status
 Singleton {
     id: root
@@ -55,11 +56,13 @@ Singleton {
         { id: "fish", label: "fish", icon: "terminal", scripts: ["fish"],
           note: "Open shells and terminals recolour at once" },
         { id: "prompt", label: "Terminal prompt", icon: "terminal", scripts: ["prompt"],
-          note: "Outlined sticker plates with a hard shadow · fish, new shells · needs a Nerd Font" },
+          note: "Outlined sticker plates with a hard shadow · fish and bash, new shells · needs a Nerd Font" },
         { id: "launcher", label: "Launcher", icon: "apps", scripts: ["fuzzel", "rofi"],
           note: "fuzzel and rofi" },
         { id: "hyprland", label: "Window borders", icon: "border_style", scripts: ["hyprland"],
-          note: "Hyprland's active and inactive borders · live" }
+          note: "Hyprland's active and inactive borders · live" },
+        { id: "spotify", label: "Spotify", icon: "music_note", scripts: ["spotify"],
+          note: "Through Spicetify · never restarts it: Ctrl+Shift+R in Spotify shows new colours" }
     ]
 
     function target(id) {

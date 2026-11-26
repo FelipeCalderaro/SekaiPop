@@ -1,0 +1,28 @@
+{
+    "id": "countdowns",
+    "name": "Countdowns",
+    "version": "1.0.0",
+    "api": 1,
+    "description": "Stickers counting down to the days you're waiting for: a concert, a release, a birthday (every year).",
+    "icon": "hourglass_top",
+    "settings": {
+        "events": "# One per line: date, then the name. Lines starting with # are skipped.\n2026-12-24 Christmas Eve\n2026-12-31 23:59 New Year's Eve\n03-14 A birthday (every year)",
+        "maxShown": 4,
+        "showPast": false,
+        "use24h": true,
+        "title": "Countdowns"
+    },
+    "settingsInfo": {
+        "events": {
+            "label": "Dates",
+            "description": "One per line: 2026-12-24 Christmas, or 2026-12-24 18:30 Concert. 12-24 Birthday repeats every year.",
+            "multiline": true,
+            "group": "Dates"
+        },
+        "maxShown": { "label": "Show at most", "min": 1, "max": 8, "unit": "countdowns", "group": "Look" },
+        "showPast": { "label": "Keep passed ones", "description": "Off: a date drops off the day after.", "group": "Dates" },
+        "use24h": { "label": "24-hour times", "group": "Look" },
+        "title": { "label": "Title", "description": "The tag over the stickers.", "group": "Look" }
+    },
+    "groups": ["Dates", "Look"]
+}

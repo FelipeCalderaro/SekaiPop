@@ -24,9 +24,20 @@
 #   --kitty MODE        keep   = keep the current Kitty theme choice
 #                       enable = opt in to SekaiPop's Kitty colours after validation
 #   --restore-kitty     remove only SekaiPop's Kitty colour integration and exit
+#   --terminal MODE     auto | yes | no: SekaiPop's terminal look (docs/TERMINAL.md): the Kitty font,
+#                       padding and cursor, neofetch with your banner, and the sticker-plate prompt
+#                       for bash and fish. auto (default) = on for a first install; a reinstall
+#                       only refreshes the parts that are already on
 #   --plugins MODE      copy  = copy the bundled plugins (./plugins) into the plugins folder (default)
 #                       link  = link them to this checkout instead (for a checkout you keep and edit)
 #                       skip  = leave the plugins folder alone
+#   --spotify MODE      ask | yes | no: the Spotify theme (Spicetify from the AUR, Spotify's folder
+#                       made writable, the shell's switch turned on). Default ask; --yes alone = no
+#   --discord MODE      ask | yes | no: the Discord theme (DOWNLOADS the official Vencord installer,
+#                       patches Discord, ticks the theme). Default ask; --yes alone = no
+#   --sddm MODE         ask | yes | no: SekaiPop's SDDM login screen (the theme, with sudo, selected
+#                       as the login screen; the previous one is written down). Default ask; --yes alone = no
+#   --restore-sddm      take SekaiPop's login screen out (SDDM's previous theme back) and exit
 #   --no-deps           do not install packages / services (only copy files)
 #   --with-tests        also copy the developer tests folder
 #   --restore           put back the Hyprland config that was backed up by the last run
@@ -37,7 +48,7 @@
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 
-REPLACED=0; DRY=0; YES=0; RICE=""; HYPR=auto; PLUGINS=copy; KITTY=auto; NODEPS=0; WITH_TESTS=0; RESTORE=0; RESTORE_KITTY=0; DEPS_ARGS=()
+REPLACED=0; DRY=0; YES=0; RICE=""; HYPR=auto; PLUGINS=copy; KITTY=auto; NODEPS=0; WITH_TESTS=0; RESTORE=0; RESTORE_KITTY=0; DEPS_ARGS=(); SPOTIFY=ask; DISCORD=ask; SDDM=ask; RESTORE_SDDM=0; TERMINAL=auto
 while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run) DRY=1 ;;
@@ -47,10 +58,15 @@ while [ $# -gt 0 ]; do
         --plugins) shift; PLUGINS=${1:-}; case "$PLUGINS" in copy|link|skip) ;; *) echo "--plugins needs copy|link|skip" >&2; exit 2 ;; esac ;;
         --kitty) shift; KITTY=${1:-}; case "$KITTY" in keep|enable) ;; *) echo "--kitty needs keep|enable" >&2; exit 2 ;; esac ;;
         --restore-kitty) RESTORE_KITTY=1 ;;
+        --terminal) shift; TERMINAL=${1:-}; case "$TERMINAL" in auto|yes|no) ;; *) echo "--terminal needs auto|yes|no" >&2; exit 2 ;; esac ;;
+        --spotify) shift; SPOTIFY=${1:-}; case "$SPOTIFY" in ask|yes|no) ;; *) echo "--spotify needs ask|yes|no" >&2; exit 2 ;; esac ;;
+        --discord) shift; DISCORD=${1:-}; case "$DISCORD" in ask|yes|no) ;; *) echo "--discord needs ask|yes|no" >&2; exit 2 ;; esac ;;
+        --sddm) shift; SDDM=${1:-}; case "$SDDM" in ask|yes|no) ;; *) echo "--sddm needs ask|yes|no" >&2; exit 2 ;; esac ;;
+        --restore-sddm) RESTORE_SDDM=1 ;;
         --no-deps) NODEPS=1 ;;
         --with-tests) WITH_TESTS=1 ;;
         --restore) RESTORE=1 ;;
-        -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,46p' "$0"; exit 0 ;;
         --) shift; DEPS_ARGS=("$@"); break ;;
         *) echo "unknown option: $1 (try --help)" >&2; exit 2 ;;
     esac
@@ -104,6 +120,13 @@ ask() { # ask <question>: yes by default; always yes with --yes / --dry-run
     { [ "$YES" = 1 ] || [ "$DRY" = 1 ]; } && return 0
     local a; read -r -p "  ${PK}?${Z} $1 ${D}[Y/n]${Z} " a; case "$a" in n|N|no|No) return 1 ;; *) return 0 ;; esac
 }
+# ask_no <question>: NO by default. Used for changes to other apps (patching Spotify / Discord): only a
+# yes typed here, or --spotify yes / --discord yes, allows them. --yes alone never does.
+ask_no() {
+    [ "$DRY" = 1 ] && return 0
+    { [ "$YES" = 1 ] || [ ! -t 0 ]; } && return 1
+    local a; read -r -p "  ${PK}?${Z} $1 ${D}[y/N]${Z} " a; case "$a" in y|Y|yes|Yes|YES) return 0 ;; *) return 1 ;; esac
+}
 ver_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }   # ver_ge A B: A >= B
 
 CFG=${XDG_CONFIG_HOME:-$HOME/.config}
@@ -124,6 +147,15 @@ if [ "$RESTORE_KITTY" = 1 ]; then
     KITTY_FLAGS=()
     [ "$DRY" = 1 ] && KITTY_FLAGS+=(--dry-run)
     sh "$KITTY_THEME" revert kitty "${KITTY_FLAGS[@]}" || exit $?
+    exit 0
+fi
+
+if [ "$RESTORE_SDDM" = 1 ]; then
+    step "Restoring the login screen"
+    SDDMSH="$HERE/sekaipop/scripts/theming/sddm-theme.sh"
+    [ -f "$SDDMSH" ] || { echo "The bundled SDDM helper is missing (sekaipop/scripts/theming/sddm-theme.sh)." >&2; exit 1; }
+    SDDMF=(); [ "$DRY" = 1 ] && SDDMF+=(--dry-run)
+    sh "$SDDMSH" restore "${SDDMF[@]}" || exit $?
     exit 0
 fi
 
@@ -206,6 +238,47 @@ if [ "$HYPR" = full ] && [ -n "$HV" ] && ! ver_ge "$HV" 0.55; then
 fi
 info "Hyprland config mode: $HYPR"
 
+# ------------------------------------------------------------------ Spotify / Discord: ask now
+# Asked before the long package step, so the rest runs without waiting on you. Each says what it
+# downloads and changes; nothing happens without a yes (docs/SPOTIFY-DISCORD-THEME.md).
+APPSETUP="$RICE/scripts/theming/app-setup.sh"
+SPOTIFY_STATE=none; DISCORD_STATE=none
+if [ -f "$APPSETUP" ]; then
+    SPOTIFY_STATE=$(bash "$APPSETUP" state spotify); DISCORD_STATE=$(bash "$APPSETUP" state discord)
+    for app in spotify discord; do
+        if [ "$app" = spotify ]; then ans=$SPOTIFY; st=$SPOTIFY_STATE; name=Spotify; else ans=$DISCORD; st=$DISCORD_STATE; name=Discord; fi
+        if [ "$st" = none ]; then
+            [ "$ans" = yes ] && warn "--$app yes: $name is not installed, so its theme is skipped"
+            ans=no
+        elif [ "$ans" = ask ]; then
+            if [ "$st" = ready ]; then
+                ok "$name theme is set up (kept as it is)"; ans=no
+            else
+                bash "$APPSETUP" explain "$app"
+                if ask_no "Set up the $name theme?"; then ans=yes; else ans=no; info "$name theme: skipped (later: ./install.sh --$app yes)"; fi
+            fi
+        fi
+        if [ "$app" = spotify ]; then SPOTIFY=$ans; else DISCORD=$ans; fi
+    done
+else
+    SPOTIFY=no; DISCORD=no
+fi
+
+# The SDDM login screen: asked here too, so the long step runs on its own (docs/SDDM.md).
+SDDMSH="$RICE/scripts/theming/sddm-theme.sh"
+if [ -f "$SDDMSH" ] && have sddm; then
+    if [ "$SDDM" = ask ]; then
+        if [ "$(sh "$SDDMSH" status)" = on ]; then ok "SDDM login screen is SekaiPop's (kept as it is)"; SDDM=no
+        else
+            sh "$SDDMSH" explain
+            if ask_no "Use SekaiPop's login screen (SDDM)?"; then SDDM=yes; else SDDM=no; info "SDDM login screen: skipped (later: ./install.sh --sddm yes)"; fi
+        fi
+    fi
+else
+    [ "$SDDM" = yes ] && warn "--sddm yes: SDDM is not installed, so its login theme is skipped"
+    SDDM=no
+fi
+
 # ------------------------------------------------------------------ 1. dependencies
 if [ "$NODEPS" = 0 ]; then
     step "1. Dependencies, fonts, services"
@@ -213,6 +286,7 @@ if [ "$NODEPS" = 0 ]; then
     [ "$DRY" = 1 ] && FLAGS+=(--dry-run)
     [ "$YES" = 1 ] && FLAGS+=(--yes)
     [ "$HYPR" != merge ] && FLAGS+=(--no-session)    # full/skip handle the session themselves
+    FLAGS+=(--spotify "$SPOTIFY" --discord "$DISCORD" --sddm "$SDDM")  # already answered above
     SEKAIPOP_FULL_INSTALL=1 bash "$HERE/install-deps.sh" "${FLAGS[@]}" "${DEPS_ARGS[@]}" || fail "install-deps.sh reported problems (see above)"
 
     if [ "$HYPR" = full ] && have pacman; then
@@ -259,6 +333,7 @@ if [ "$DRY" != 1 ] && [ -d "$HERE/.git" ] && have git && [ -d "$QS_DEST" ] && [ 
         echo "commit=$(git -C "$HERE" rev-parse HEAD)"
         echo "repo=$(git -C "$HERE" config --get remote.origin.url)"
         echo "ref=$(git -C "$HERE" rev-parse --abbrev-ref HEAD)"
+        echo "src=$HERE"
     } > "$QS_DEST/.source" 2>/dev/null || true
 fi
 
@@ -369,6 +444,63 @@ else
                 ;;
             *) warn "Could not determine Kitty integration status; no Kitty configuration was changed." ;;
         esac
+    fi
+fi
+
+# ------------------------------------------------------------------ terminal look
+# Kitty's font / padding / cursor (terminal-look.sh), neofetch with the Quick Panel banner
+# (neofetch-setup.sh) and the App colours "Terminal prompt" switch (bash and fish). Each part
+# keeps a backup or a marked line and has its own revert (docs/TERMINAL.md).
+step "Terminal look"
+TLOOK="$RICE/scripts/theming/terminal-look.sh"
+TFETCH="$RICE/scripts/theming/neofetch-setup.sh"
+if [ "$TERMINAL" = no ]; then
+    info "skipped (--terminal no)"
+elif [ ! -f "$TLOOK" ] || [ ! -f "$TFETCH" ]; then
+    warn "this rice has no terminal-look scripts; skipped"
+else
+    T_ALL=0
+    { [ "$TERMINAL" = yes ] || [ "$FIRST_INSTALL" = 1 ]; } && T_ALL=1
+    if have kitty; then
+        if [ "$T_ALL" = 1 ] || [ "$(sh "$TLOOK" status)" = on ]; then
+            if [ "$DRY" = 1 ]; then info "would run: sh $TLOOK enable"
+            else out=$(sh "$TLOOK" enable 2>&1) && ok "Kitty look: ${out#terminal-look: }" || warn "Kitty look: $out"; fi
+        else info "Kitty look: off (turn it on with: sh \"$TLOOK\" enable)"; fi
+    else
+        info "Kitty isn't installed: no Kitty look"
+    fi
+    if have neofetch; then
+        if [ "$T_ALL" = 1 ] || [ "$(sh "$TFETCH" status)" = on ]; then
+            if [ "$DRY" = 1 ]; then info "would run: sh $TFETCH enable"
+            else out=$(sh "$TFETCH" enable 2>&1) && ok "neofetch: banner card on (picture: Settings > General > Quick Panel)" || warn "neofetch: $out"; fi
+        else info "neofetch: off (turn it on with: sh \"$TFETCH\" enable)"; fi
+    else
+        info "neofetch isn't installed (AUR: neofetch): no banner card"
+    fi
+    if [ "$T_ALL" = 1 ]; then
+        SEKAIPOP_DRY=$DRY bash "$APPSETUP" prompt-on || warn "Terminal prompt: could not turn the switch on"
+    fi
+fi
+
+# ------------------------------------------------------------------ SDDM login screen (with --no-deps)
+if [ "$SDDM" = yes ] && [ "$NODEPS" = 1 ]; then
+    step "SDDM login screen"
+    SDDMF=(--select); [ "$DRY" = 1 ] && SDDMF+=(--dry-run)
+    sh "$SDDMSH" install "${SDDMF[@]}" && { [ "$DRY" = 1 ] || ok "SDDM login screen: SekaiPop's"; } || fail "SDDM login screen: could not install the theme (see above)"
+fi
+
+# ------------------------------------------------------------------ Spotify and Discord themes
+if [ "$SPOTIFY" = yes ] || [ "$DISCORD" = yes ]; then
+    step "Spotify and Discord themes"
+    export SEKAIPOP_DRY=$DRY SEKAIPOP_YES=$YES
+    if [ "$SPOTIFY" = yes ]; then
+        # with --no-deps step 1 didn't run: do its part (Spicetify, the folder) here
+        [ "$NODEPS" = 1 ] && { bash "$APPSETUP" spotify-deps || fail "Spotify theme: could not finish (see above)"; }
+        bash "$APPSETUP" spotify-on || fail "Spotify theme: could not turn the switch on"
+    fi
+    if [ "$DISCORD" = yes ]; then
+        [ "$NODEPS" = 1 ] && { bash "$APPSETUP" vencord-patch || fail "Discord theme: Vencord could not be installed (see above)"; }
+        bash "$APPSETUP" vencord-theme || fail "Discord theme: could not tick the theme"
     fi
 fi
 
@@ -604,5 +736,8 @@ printf '      %sThe shell starts by itself. By hand:%s  %sqs -c sekaipop%s\n' "$
 nx "Keybinds: ${B}Super + /${Z} opens the cheat sheet.  ${B}Super${Z} (tap) = apps.  ${B}Super + I${Z} = settings."
 nx "Config mistakes are written to ${B}~/.cache/sekaipop/hypr-errors.log${Z} (the rest still loads)."
 nx "Undo the Hyprland part:  ${B}./install.sh --restore${Z}"
+[ "$SPOTIFY" = yes ] && nx "Spotify: press ${B}Ctrl+Shift+R${Z} in Spotify (or start it) to see the theme; it follows every theme change."
+[ "$SDDM" = yes ] && nx "Login screen: SekaiPop's from the next login. Preview it now: ${B}sh $QS_DEST/scripts/theming/sddm-theme.sh preview${Z}  Undo: ${B}./install.sh --restore-sddm${Z}"
+[ "$DISCORD" = yes ] && nx "Discord: quit it completely (tray > Quit) and start it again. In User Settings > Vencord > Themes, ${B}sekaipop.theme.css${Z} should be ticked (tick it if not)."
 printf '\n'
 [ "${#FAILED[@]}" -eq 0 ]

@@ -427,6 +427,11 @@ The manifest fields and the `host` object above are a promise to plugins written
 
 ### Tests
 
+The bundled widget plugins (docs/WIDGET-PLUGINS.md) have their own checks, which also work for a
+plugin of yours: unit tests with Qt's `qmltestrunner`, and `Widget.qml` drawn offscreen with a
+stand-in theme and sample data (`sh sekaipop/tests/plugin-widgets-test/run.sh <id>`). Their shared
+block, key, sticker and tag components are in `examples/plugin-kit/`; copy them into your plugin.
+
 ```sh
 node sekaipop/tests/plugin-test/manifest_unit.js      # manifest, settings, state, wiring, the example
 node sekaipop/tests/plugin-test/form_unit.js          # what Settings shows: the form, labels, skip reasons

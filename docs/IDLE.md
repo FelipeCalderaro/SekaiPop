@@ -11,6 +11,17 @@ suspends or hibernates, each of them optional. Issue
   - *Screen off after*: 0 to 120 minutes, 0 is *Never*. Default 10.
   - *Sleep after* (*Hibernate after*): 0 to 240 minutes in steps of 5, 0 is *Never*. Default 15.
   - *Sleep by*: *Suspend* (the default) or *Hibernate*.
+- **Settings > Quick > Idle & sleep:** the same three times, on the page of the things you reach
+  for most.
+- **From the phone (Quick Panel): the *Idle & Sleep* tile.** Add it from the panel's edit mode
+  (it is in the "add" tray). Its second line is the first thing that will happen ("Lock 5 min",
+  "Screen off 10 min", "Never"); a click opens a card over the phone with the same three times
+  and *Sleep by*. Its - / + keys step through round values (Never, 1, 2, 3, 5, 10, 15, 20, 30,
+  45 min, 1 h, 1 h 30 min, 2 h; sleep: Never, 5 min ... 4 h); a time set to something else in
+  Settings steps on from where it is. The card says in amber when one time makes another
+  pointless (it sleeps before the screen would turn off) and when hypridle isn't using these
+  times yet (see "An install from before this"). It writes the same settings as Settings, so
+  the two always agree.
 - The defaults are the times the shipped `hypridle.conf` always had.
 - Each time counts from the last input, on its own: the screen can go off before the lock,
   and the machine can sleep with the lock set to *Never*. Sleeping still locks first
@@ -79,6 +90,10 @@ and restarts hypridle.
 - `services/SettingsService.qml`: `idle.lock`, `idle.screenOff`, `idle.sleep`,
   `idle.sleepAction`. `services/DesktopPresetService.qml`: `idle.` is in `keepPrefix`.
 - `modules/sekai/settings/SettingsPageGeneral.qml`: the *Idle & sleep* section.
+- `modules/sekai/quickPanel/IdleDialog.qml`: the Quick Panel's card; the tile (`idle`) is in
+  `QuickTiles.js` and `QuickPanelFace.qml`, fed from SettingsService / IdleService in
+  `QuickPanel.qml`. `modules/common/functions/IdleSteps.js`: its steps and words
+  (tests: `tests/quick-idle-test/tst_idle_steps.qml`, with qmltestrunner).
 - `hypr/hypridle.conf`: the `general { }` block and the `source =` line, no listeners.
 - `tests/idle-test/idle_test.js`: the script against a throwaway config folder, with
   stand-ins for hypridle, and the wiring around it.

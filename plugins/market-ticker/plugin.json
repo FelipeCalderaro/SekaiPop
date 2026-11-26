@@ -1,0 +1,41 @@
+{
+    "id": "market-ticker",
+    "name": "Market Ticker",
+    "version": "1.0.0",
+    "api": 1,
+    "description": "Live candlestick chart and a watchlist strip for crypto pairs, from Binance's public market data (no account, no key).",
+    "icon": "candlestick_chart",
+    "settings": {
+        "symbols": "BTCUSDT ETHUSDT SOLUSDT DOGEUSDT",
+        "interval": "15m",
+        "candles": 60,
+        "style": "candles",
+        "showVolume": true,
+        "width": 440
+    },
+    "settingsInfo": {
+        "symbols": {
+            "label": "Watchlist",
+            "description": "Binance pairs, separated by spaces: BTCUSDT ETHUSDT. The first one is charted; click another in the strip.",
+            "group": "Data"
+        },
+        "interval": {
+            "label": "Candle",
+            "choices": [
+                { "value": "1m", "label": "1 min" }, { "value": "5m", "label": "5 min" },
+                { "value": "15m", "label": "15 min" }, { "value": "1h", "label": "1 hour" },
+                { "value": "4h", "label": "4 hours" }, { "value": "1d", "label": "1 day" }
+            ],
+            "group": "Data"
+        },
+        "candles": { "label": "Candles shown", "min": 20, "max": 120, "step": 5, "group": "Look" },
+        "style": {
+            "label": "Chart",
+            "choices": [{ "value": "candles", "label": "Candles" }, { "value": "line", "label": "Line" }],
+            "group": "Look"
+        },
+        "showVolume": { "label": "Volume bars", "group": "Look" },
+        "width": { "label": "Width", "min": 340, "max": 760, "step": 20, "unit": "px", "group": "Look" }
+    },
+    "groups": ["Data", "Look"]
+}

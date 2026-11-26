@@ -189,7 +189,8 @@ Singleton {
         "region.",
         "overview.",
         "appTheme.",
-        "systemTheme."
+        "systemTheme.",
+        "sound."
     ]
 
     // True for a Settings Panel key a preset never reads or writes.

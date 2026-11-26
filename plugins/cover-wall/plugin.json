@@ -1,0 +1,27 @@
+{
+    "id": "cover-wall",
+    "name": "Cover Wall",
+    "version": "1.0.0",
+    "api": 1,
+    "description": "What's playing as a spinning record, over a wall of the albums you played lately. From any player (Spotify, mpv, a browser tab).",
+    "icon": "album",
+    "settings": {
+        "columns": 4,
+        "rows": 2,
+        "clickSearches": "spotify",
+        "showRecord": true
+    },
+    "settingsInfo": {
+        "columns": { "label": "Covers per row", "min": 3, "max": 6 },
+        "rows": { "label": "Rows", "min": 1, "max": 4 },
+        "clickSearches": {
+            "label": "Click a cover to",
+            "choices": [
+                { "value": "spotify", "label": "Search Spotify" },
+                { "value": "youtube", "label": "Search YouTube Music" },
+                { "value": "off", "label": "Nothing" }
+            ]
+        },
+        "showRecord": { "label": "Spinning record", "description": "What's playing, over the wall, with play / pause and next." }
+    }
+}

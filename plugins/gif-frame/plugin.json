@@ -1,0 +1,47 @@
+{
+    "id": "gif-frame",
+    "name": "GIF Frame",
+    "version": "1.0.0",
+    "api": 1,
+    "description": "A looping GIF (or WebP, APNG, any picture) in a polaroid or taped frame. Point it at a folder and it shows a different one every so often.",
+    "icon": "gif_box",
+    "frame": false,
+    "settings": {
+        "source": "~/Pictures",
+        "changeMinutes": 60,
+        "look": "polaroid",
+        "caption": "",
+        "showName": false,
+        "width": 260,
+        "tilt": -2,
+        "autoplay": true
+    },
+    "settingsInfo": {
+        "source": {
+            "label": "Picture or folder",
+            "description": "A file (~/Pictures/cat.gif), or a folder to pick one from at random.",
+            "group": "Picture"
+        },
+        "changeMinutes": {
+            "label": "Change every",
+            "description": "With a folder: picks another one this often (0 = only when you click Next).",
+            "min": 0, "max": 240, "step": 5, "unit": "minutes",
+            "group": "Picture"
+        },
+        "look": {
+            "label": "Frame",
+            "choices": [
+                { "value": "polaroid", "label": "Polaroid" },
+                { "value": "tape", "label": "Taped" },
+                { "value": "block", "label": "Block" }
+            ],
+            "group": "Look"
+        },
+        "caption": { "label": "Caption", "description": "Under the picture (Polaroid). Empty: none.", "group": "Look" },
+        "showName": { "label": "Caption from the file name", "description": "When the caption is empty.", "group": "Look" },
+        "width": { "label": "Width", "min": 140, "max": 640, "step": 10, "unit": "px", "group": "Look" },
+        "tilt": { "label": "Tilt", "min": -8, "max": 8, "unit": "°", "group": "Look" },
+        "autoplay": { "label": "Play", "description": "Off: it holds the first frame until you press play.", "group": "Picture" }
+    },
+    "groups": ["Picture", "Look"]
+}

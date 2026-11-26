@@ -259,6 +259,17 @@ SettingsPage {
             ]
             onPicked: id => SettingsService.set("files.chooser", id)
         }
+
+        SettingChoice {
+            label: "Neofetch picture"
+            sublabel: "What the SekaiPop neofetch config shows beside your system info in Kitty (scripts/theming/neofetch-setup.sh). Falls back to the other one, then to the distro logo, when it isn't set"
+            current: SettingsService.get("terminal.fetchImage")
+            options: [
+                { id: "banner", label: "Banner", icon: "panorama" },
+                { id: "avatar", label: "Profile picture", icon: "account_circle" }
+            ]
+            onPicked: id => SettingsService.set("terminal.fetchImage", id)
+        }
     }
 
     SectionCard {
@@ -476,6 +487,49 @@ SettingsPage {
                 { id: "hibernate", label: "Hibernate", icon: "save" }
             ]
             onPicked: id => SettingsService.set("idle.sleepAction", id)
+        }
+    }
+
+    // The error sound: the bell a terminal (kitty) and GTK apps play on a refused key, like a
+    // Backspace with nothing to delete. SoundService / scripts/theming/error-sound.sh (docs/SOUNDS.md).
+    SectionCard {
+        title: "Sounds"
+
+        SettingChoice {
+            label: "Error sound"
+            sublabel: SoundService.status === "conflict"
+                ? "You have a sound theme of your own in ~/.local/share/sounds/__custom, so this is left to it"
+                : SoundService.error !== "" ? SoundService.error
+                : "The bell, as when Backspace has nothing to delete in a terminal. Default is your sound theme's own"
+            current: SettingsService.get("sound.error")
+            options: [
+                { id: "default", label: "Default", icon: "notifications" },
+                { id: "soft", label: "Soft", icon: "music_note" },
+                { id: "chime", label: "Chime", icon: "auto_awesome" },
+                { id: "pop", label: "Pop", icon: "water_drop" },
+                { id: "ding", label: "Ding", icon: "notifications_active" },
+                { id: "file", label: "My file", icon: "upload_file" },
+                { id: "off", label: "Off", icon: "notifications_off" }
+            ]
+            onPicked: id => SettingsService.set("sound.error", id)
+        }
+
+        SettingText {
+            visible: SettingsService.get("sound.error") === "file"
+            label: "Sound file"
+            sublabel: "An .oga, .ogg or .wav file (a short one)"
+            value: SettingsService.get("sound.errorFile")
+            placeholder: "~/Music/blip.oga"
+            onSubmitted: text => SettingsService.set("sound.errorFile", text.replace(/^~(?=\/)/, Quickshell.env("HOME")))
+            onCleared: SettingsService.set("sound.errorFile", "")
+        }
+
+        SettingAction {
+            icon: "play_arrow"
+            label: "Try it"
+            detail: SettingsService.get("sound.error") === "off" ? "The bell is off" : "Plays the bell as apps will"
+            busy: SoundService.busy
+            onActivated: SoundService.play()
         }
     }
 

@@ -593,6 +593,11 @@ short screen it folds its utility keys into a tools key and drops CPU/RAM and we
 - **Standing bars stack**: icon over a short text (`host.bar.vertical` for plugins).
 - **Narrow flat bars wrap** (12.3). Before wrapping existed, the three anchored zones simply slid
   over each other on a portrait screen.
+- **Narrow screens stack, they don't squeeze.** Edit Desktop's shelf folds its side columns
+  (title + how-to, tabs, Lock all / Done) into rows above a full-width content area under 1400
+  design px, and gives the tabs a row of their own under ~1040 (`EditMode.compactShelf` /
+  `compactTight`). Keys keep their size and construction; the cost is height, which a portrait
+  monitor has to spare. Help keeps its order and place in every layout.
 - **Lists scroll inside their card** after five rows (`Flickable` + `WheelScroll` +
   `SekaiScrollBar`); a popup is at most 70 % of the screen tall.
 

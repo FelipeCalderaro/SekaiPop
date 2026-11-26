@@ -57,7 +57,7 @@ Item {
     property int hoveredIndex: -1
     property bool keyNav: false
     readonly property int labelIndex: hoveredIndex >= 0 ? hoveredIndex
-                                      : (keyNav ? currentIndex : -1)
+                                      : (keyNav ? currentIndex : (powerOffArmed ? 0 : -1))
 
     function move(delta) {
         const n = rows.length
@@ -68,7 +68,25 @@ Item {
             : (currentIndex + delta + n) % n
     }
 
+    // Shut down asks twice, like SAVE OVER on a desktop preset (EditPresetBoard.qml):
+    // the first press (click or Enter) arms the pill, which turns red and says
+    // "Click again"; a second press within 2.8 s does it, after that it lapses.
+    property bool powerOffArmed: false
+
+    Timer {
+        id: powerOffArmTimer
+        interval: 2800
+        onTriggered: root.powerOffArmed = false
+    }
+
     function trigger(i) {
+        if (i === 0 && !root.powerOffArmed) {
+            root.powerOffArmed = true
+            powerOffArmTimer.restart()
+            return
+        }
+        root.powerOffArmed = false
+        powerOffArmTimer.stop()
         switch (i) {
             case 0: root.powerOffRequested(); break
             case 1: root.rebootRequested(); break
@@ -84,6 +102,8 @@ Item {
 
     onOpenChanged: {
         PowerBusyService.watching = root.open
+        root.powerOffArmed = false
+        powerOffArmTimer.stop()
         if (root.open) {
             root.currentIndex = -1
             root.hoveredIndex = -1
@@ -247,6 +267,9 @@ Item {
                     // the rail rather than just lighting up in place.
                     elevated: true
                     hoverLights: true
+                    // Shut down, pressed once: lit red until the second press.
+                    on: item.index === 0 && root.powerOffArmed
+                    danger: on
                     hoverElevates: true
                     anchorRight: true
                     keyFocused: root.currentIndex === item.index
@@ -376,6 +399,7 @@ Item {
         id: label
         readonly property int idx: root.labelIndex
         readonly property bool warned: root.isWarned(idx)
+        readonly property bool armed: idx === 0 && root.powerOffArmed
         // Kept while fading out, so the text doesn't blank before the plate does.
         property int shownIdx: 0
         onIdxChanged: if (idx >= 0) shownIdx = idx
@@ -388,9 +412,9 @@ Item {
         width: labelText.width + 28
         height: labelText.implicitHeight + 16
         radius: 12
-        color: warned ? "#ff9f1c" : mt.chipFill
+        color: armed ? "#d83a5c" : (warned ? "#ff9f1c" : mt.chipFill)
         border.width: 3
-        border.color: warned ? mt.colBorder : mt.pLine
+        border.color: (armed || warned) ? mt.colBorder : mt.pLine
         antialiasing: true
 
         opacity: root.open && idx >= 0 ? 1 : 0
@@ -413,10 +437,13 @@ Item {
             // which only reaches about 390 design units past the rail.
             width: Math.min(implicitWidth, 300)
             wrapMode: Text.WordWrap
-            text: label.warned
+            text: label.armed
+                  ? (label.warned ? "Click again to shut down anyway: " + PowerBusyService.note
+                                  : "Click again to shut down")
+                  : label.warned
                   ? root.labels[label.shownIdx] + " will cut it off: " + PowerBusyService.note
                   : root.labels[label.shownIdx]
-            color: label.warned ? mt.colBorder : mt.chipInk
+            color: label.armed ? "#ffffff" : (label.warned ? mt.colBorder : mt.chipInk)
             font.family: mt.fontFamily
             font.pixelSize: 14
             font.weight: Font.Black

@@ -264,6 +264,26 @@ for i = 1, 4 do
         { description = (i <= 2) and "Workspaces: Focus workspace left/right"
             or "Workspaces (more): Focus workspace left/right" })
 end
+--# Move the workspace to another monitor, by the monitor layout, wrapping round at the edges
+--#/# bind = SUPER + ALT, ←/↑/→/↓,, -- Move workspace to monitor in direction
+-- (a missing or broken helper costs only these four keys, not the binds below)
+local okMd, monitorDirection = pcall(require, "hyprland.lib.monitor_direction")
+if okMd then
+    for i = 1, 4 do
+        local arrowkey = { "Left", "Right", "Up", "Down" }
+        local dir = ({ "l", "r", "u", "d" })[i]
+        hl.bind("SUPER + ALT + " .. arrowkey[i], function()
+            local focused = hl.get_active_monitor()
+            -- the regular workspace showing there: an open scratchpad is not what moves
+            local ws = focused and focused.active_workspace
+            if not ws then return end
+            local target = monitorDirection.target(hl.get_monitors(), focused.name, dir)
+            if not target then return end
+            hl.dispatch(hl.dsp.workspace.move({ workspace = ws.id, monitor = target }))
+            hl.dispatch(hl.dsp.focus({ monitor = target }))
+        end, { description = "Workspaces: Move workspace to monitor in direction" })
+    end
+end
 --## Special
 hl.bind("SUPER + S", hl.dsp.workspace.toggle_special("special"), { description = "Workspaces: Toggle scratchpad" })
 hl.bind("SUPER + mouse:275", hl.dsp.workspace.toggle_special("special"),

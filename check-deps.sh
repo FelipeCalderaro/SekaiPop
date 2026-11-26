@@ -283,6 +283,8 @@ cmd 1 curl curl pac "weather, lyrics"
 cmd 1 jq jq pac
 any 2 "file chooser for avatar/banner/custom image" zenity pac zenity kdialog yad
 any 3 "terminal (kitty, foot, alacritty...)" kitty pac kitty foot alacritty wezterm gnome-terminal
+cmd 3 neofetch neofetch aur "terminal look: system info beside your banner (docs/TERMINAL.md)"
+font 3 "Maple Mono NF" maplemono-nf aur "terminal look's first-choice font; JetBrains Mono is used without it"
 
 # --------------------------------------------------------------------------
 section "Theming"
@@ -333,6 +335,24 @@ cmd 3 hyprpm hyprland pac "only for the scroll-overview plugin"
 cmd 3 warp-cli cloudflare-warp-bin aur "WARP toggle"
 cmd 3 git git pac
 cmd 3 node nodejs pac "Discord voice companion"
+# the login screen (only where SDDM is installed; ./install.sh --sddm yes)
+SDDMSH_CHK="${SEKAIPOP_DIR:-$HOME/.config/quickshell/sekaipop}/scripts/theming/sddm-theme.sh"
+if have sddm && [ -f "$SDDMSH_CHK" ]; then
+    if [ "$(sh "$SDDMSH_CHK" status 2>/dev/null)" = on ]; then record 3 "SekaiPop's SDDM login screen" 1 "" manual
+    else record 3 "SekaiPop's SDDM login screen" 0 "" manual "./install.sh --sddm yes (docs/SDDM.md)"; fi
+fi
+# the Spotify / Discord themes (only when the app is installed; ./install.sh --spotify yes / --discord yes)
+APPSETUP_CHK="${SEKAIPOP_DIR:-$HOME/.config/quickshell/sekaipop}/scripts/theming/app-setup.sh"
+if have spotify || [ -d /opt/spotify ]; then
+    any 3 "Spicetify (the Spotify theme)" spicetify-cli aur spicetify
+fi
+if [ -f "$APPSETUP_CHK" ] && [ "$(bash "$APPSETUP_CHK" state discord 2>/dev/null)" != none ]; then
+    if [ "$(bash "$APPSETUP_CHK" state discord 2>/dev/null)" = ready ]; then
+        record 3 "Vencord + the sekaipop theme (Discord)" 1 "" manual
+    else
+        record 3 "Vencord + the sekaipop theme (Discord)" 0 "" manual "./install.sh --discord yes (downloads the Vencord installer)"
+    fi
+fi
 cmd 3 pnpm pnpm pac "Discord voice companion"
 any 3 "Discord client (Vesktop / Equibop / Discord)" vesktop aur vesktop equibop discord
 

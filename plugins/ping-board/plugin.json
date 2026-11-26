@@ -1,0 +1,25 @@
+{
+    "id": "ping-board",
+    "name": "Ping Board",
+    "version": "1.0.0",
+    "api": 1,
+    "description": "Live ping to a few hosts as little bar graphs, packet loss in words, and a speed test on a key.",
+    "icon": "network_ping",
+    "settings": {
+        "hosts": "1.1.1.1 Cloudflare\n8.8.8.8 Google\narchlinux.org Arch",
+        "seconds": 5,
+        "showSpeedTest": true
+    },
+    "settingsInfo": {
+        "hosts": {
+            "label": "Hosts",
+            "description": "One per line: an address, then a name. At most 6.",
+            "multiline": true
+        },
+        "seconds": { "label": "Ping every", "min": 2, "max": 60, "unit": "seconds" },
+        "showSpeedTest": {
+            "label": "Speed test key",
+            "description": "Downloads 25 MB and uploads 10 MB from speed.cloudflare.com, only when you press it."
+        }
+    }
+}

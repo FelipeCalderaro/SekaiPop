@@ -1042,6 +1042,8 @@ SettingsPage {
                     icon: appRow.modelData.icon
                     label: appRow.modelData.label
                     detail: appRow.themeState === "not installed" ? "Not installed"
+                            : appRow.themeState === "conflict" && appRow.modelData.id === "spotify"
+                              ? "Spotify's folder needs write access · see docs/SPOTIFY-DISCORD-THEME.md"
                             : appRow.themeState === "conflict" ? "Config needs review · see the shell log"
                             : appRow.themeState === "pending" ? "Waiting for the current palette"
                             : appRow.modelData.id === "hyprland" && HyprlandSettings.isLua && !HyprlandSettings.linked

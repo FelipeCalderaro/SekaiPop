@@ -1,0 +1,150 @@
+/* ===== SekaiPop for Spotify (Spicetify theme "SekaiPop") =====
+ * Installed by scripts/theming/spotify-theme.py; the colours come from color.ini, written
+ * from the shell's theme (Settings > Desktop > App colours > Spotify). Do not edit the copy
+ * in ~/.config/spicetify/Themes: it is replaced with the theme.
+ *
+ * The same blocks as the shell (docs/DESIGN-SYSTEM.md): a fill, an outline in --spice-sekai-line
+ * and a hard shadow straight down in --spice-sekai-shadow. No soft shadows, glows or blur. The
+ * accent fill means "on" / "act": play, primary buttons, progress.
+ *
+ * Only stable hooks are used: Spotify's encore colour sets, the Root__ panels, Spicetify's
+ * mapped main-* classes and data-testid attributes. Nothing changes a size or position, so
+ * Spotify's layout, resize handles and keyboard focus stay as they are.
+ */
+
+:root {
+    --sekai-bw: 2px;                 /* outline (Discord's theme uses the same) */
+    --sekai-drop: 4px;               /* hard shadow, panels */
+    --sekai-drop-key: 3px;           /* hard shadow, keys and cards */
+    --sekai-spring: cubic-bezier(0.34, 1.56, 0.64, 1);   /* ~OutBack: springs back past rest */
+    --sekai-in: cubic-bezier(0.5, 1, 0.89, 1);            /* ~OutQuad: the press */
+    --encore-body-font-stack: "Google Sans Flex", "SpotifyMixUI", "CircularSp", "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --encore-title-font-stack: "Google Sans Flex", "SpotifyMixUITitle", "CircularSp", "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+body {
+    font-family: var(--encore-body-font-stack);
+}
+
+/* ===== colours: every encore set reads the theme ===== */
+.encore-dark-theme,
+.encore-dark-theme .encore-base-set {
+    --background-base: var(--spice-main);
+    --background-highlight: var(--spice-highlight);
+    --background-press: var(--spice-highlight-elevated);
+    --background-elevated-base: var(--spice-main-elevated);
+    --background-elevated-highlight: var(--spice-highlight-elevated);
+    --background-elevated-press: var(--spice-highlight);
+    --background-tinted-base: rgba(var(--spice-rgb-text), 0.08);
+    --background-tinted-highlight: rgba(var(--spice-rgb-text), 0.14);
+    --background-tinted-press: rgba(var(--spice-rgb-text), 0.2);
+    --text-base: var(--spice-text);
+    --text-subdued: var(--spice-subtext);
+    --text-bright-accent: var(--spice-button);
+    --text-negative: var(--spice-notification-error);
+    --essential-base: var(--spice-text);
+    --essential-subdued: var(--spice-subtext);
+    --essential-bright-accent: var(--spice-button);
+    --essential-negative: var(--spice-notification-error);
+    --decorative-base: var(--spice-text);
+    --decorative-subdued: var(--spice-sekai-line);
+}
+
+/* the accent fill (Spotify's green): primary buttons, the big play buttons */
+.encore-dark-theme .encore-bright-accent-set {
+    --background-base: var(--spice-sekai-fill);
+    --background-highlight: var(--spice-button-active);
+    --background-press: var(--spice-sekai-fill);
+    --text-base: var(--spice-sekai-on-fill);
+    --essential-base: var(--spice-sekai-on-fill);
+}
+
+/* ===== the desk and the panels ===== */
+.Root__top-container {
+    background-color: var(--spice-sekai-desk);
+}
+
+.Root__nav-bar,
+.Root__main-view,
+.Root__right-sidebar:not(:empty) {
+    border-radius: 8px;
+    /* outline is painted above the panel's content, so it frames it without clipping it */
+    outline: var(--sekai-bw) solid var(--spice-sekai-line);
+    outline-offset: calc(-1 * var(--sekai-bw));
+    box-shadow: 0 var(--sekai-drop) 0 var(--spice-sekai-shadow);
+}
+
+/* ===== keys: drop onto their shadow, spring back ===== */
+:is([data-testid="control-button-playpause"], .main-playButton-PlayButton button, [data-testid="play-button"]) {
+    border: var(--sekai-bw) solid var(--spice-sekai-line) !important;
+    box-shadow: 0 var(--sekai-drop-key) 0 var(--spice-sekai-shadow) !important;
+    transform: translateY(0);
+}
+
+:is([data-testid="control-button-playpause"], [data-testid="play-button"]) {
+    background-color: var(--spice-sekai-fill) !important;
+    color: var(--spice-sekai-on-fill) !important;
+}
+
+:is([data-testid="control-button-playpause"], [data-testid="play-button"]) svg {
+    fill: var(--spice-sekai-on-fill) !important;
+}
+
+:is([data-testid="control-button-playpause"], .main-playButton-PlayButton button, [data-testid="play-button"]):active {
+    transform: translateY(var(--sekai-drop-key)) !important;
+    box-shadow: 0 0 0 var(--spice-sekai-shadow) !important;
+}
+
+/* ===== cards ===== */
+.main-card-card {
+    background-color: var(--spice-card);
+    outline: var(--sekai-bw) solid var(--spice-sekai-line);
+    outline-offset: calc(-1 * var(--sekai-bw));
+    box-shadow: 0 var(--sekai-drop-key) 0 var(--spice-sekai-shadow);
+}
+
+.main-card-card:hover {
+    background-color: var(--spice-highlight-elevated);
+}
+
+/* ===== floating things: menus and dialogs are blocks too (no soft elevation shadow) ===== */
+.main-contextMenu-menu,
+[data-testid="context-menu"],
+.GenericModal {
+    background-color: var(--spice-main-elevated) !important;
+    border: var(--sekai-bw) solid var(--spice-sekai-line);
+    box-shadow: 0 var(--sekai-drop) 0 var(--spice-sekai-shadow) !important;
+}
+
+/* ===== on / playing ===== */
+.x-progressBar-fillColor {
+    background-color: var(--spice-button) !important;
+}
+
+.progress-bar__slider {
+    background-color: var(--spice-sekai-fill) !important;
+    border: var(--sekai-bw) solid var(--spice-sekai-line);
+}
+
+.main-trackList-selected,
+.main-trackList-trackListRow:focus-within {
+    background-color: rgba(var(--spice-rgb-selected-row), 0.14);
+}
+
+/* keyboard focus stays visible: the accent ring instead of Spotify's white one */
+:focus-visible {
+    outline-color: var(--spice-button) !important;
+}
+
+/* ===== motion (only when the system allows it) ===== */
+@media (prefers-reduced-motion: no-preference) {
+    :is([data-testid="control-button-playpause"], .main-playButton-PlayButton button, [data-testid="play-button"]) {
+        transition: transform 260ms var(--sekai-spring), box-shadow 260ms var(--sekai-spring), background-color 150ms;
+    }
+    :is([data-testid="control-button-playpause"], .main-playButton-PlayButton button, [data-testid="play-button"]):active {
+        transition: transform 80ms var(--sekai-in), box-shadow 80ms var(--sekai-in);
+    }
+    .main-card-card {
+        transition: background-color 150ms;
+    }
+}

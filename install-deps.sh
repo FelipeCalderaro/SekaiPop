@@ -19,6 +19,12 @@
 #   --file-manager dolphin|thunar|none   which file manager to add (default: dolphin if you run KDE/Plasma or already have it, else thunar)
 #   --no-update           don't run a full system update first
 #   --no-aur  --no-services  --no-fonts  --no-session
+#   --spotify ask|yes|no  the Spotify theme: Spicetify (AUR spicetify-cli) and Spotify's folder made
+#                         writable (default ask; --yes alone does NOT set it up, say yes here)
+#   --discord ask|yes|no  the Discord theme: downloads the official Vencord installer and patches
+#                         Discord with it (default ask; --yes alone does NOT, say yes here)
+#   --sddm ask|yes|no     SekaiPop's SDDM login screen: the theme (sudo) and selecting it
+#                         (default ask; --yes alone does NOT, say yes here)
 #   -h, --help
 #
 # Run as your normal user (it uses sudo where needed). Run ./check-deps.sh afterwards.
@@ -26,7 +32,7 @@
 set -u
 
 DRY=0; YES=0; CORE_ONLY=0; WITH_OPT=0; DESKTOP=1; GPU=auto; DDC=0; FM=auto
-UPDATE=1; AUR=1; SERVICES=1; FONTS=1; SESSION=1
+UPDATE=1; AUR=1; SERVICES=1; FONTS=1; SESSION=1; SPOTIFY=ask; DISCORD=ask; SDDM=ask
 while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run) DRY=1 ;;
@@ -42,7 +48,10 @@ while [ $# -gt 0 ]; do
         --no-services) SERVICES=0 ;;
         --no-fonts) FONTS=0 ;;
         --no-session) SESSION=0 ;;
-        -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+        --spotify) shift; SPOTIFY=${1:-}; case "$SPOTIFY" in ask|yes|no) ;; *) echo "--spotify needs ask|yes|no" >&2; exit 2 ;; esac ;;
+        --discord) shift; DISCORD=${1:-}; case "$DISCORD" in ask|yes|no) ;; *) echo "--discord needs ask|yes|no" >&2; exit 2 ;; esac ;;
+        --sddm) shift; SDDM=${1:-}; case "$SDDM" in ask|yes|no) ;; *) echo "--sddm needs ask|yes|no" >&2; exit 2 ;; esac ;;
+        -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
         *) echo "unknown option: $1 (try --help)" >&2; exit 2 ;;
     esac
     shift
@@ -106,6 +115,13 @@ ask() { # ask <question>: default yes in --yes and --dry-run
     local a; read -r -p "  ${PK}?${Z} $1 ${D}[Y/n]${Z} " a; case "$a" in n|N|no|No) return 1 ;; *) return 0 ;; esac
 }
 have() { command -v "$1" >/dev/null 2>&1; }
+# ask_no <question>: NO by default. For changes to other apps (patching Spotify / Discord): only an
+# answer of yes here, or --spotify yes / --discord yes, allows them; --yes alone never does.
+ask_no() {
+    [ "$DRY" = 1 ] && return 0
+    { [ "$YES" = 1 ] || [ ! -t 0 ]; } && return 1
+    local a; read -r -p "  ${PK}?${Z} $1 ${D}[y/N]${Z} " a; case "$a" in y|Y|yes|Yes|YES) return 0 ;; *) return 1 ;; esac
+}
 
 # ---------------------------------------------------------------- preconditions
 [ "${SEKAIPOP_FULL_INSTALL:-0}" = 1 ] || banner "SekaiPop dependencies" "packages, fonts, services, groups"
@@ -139,7 +155,7 @@ FEATURES=(
   "matugen|matugen-bin" cava easyeffects
   grim slurp cliphist wtype hyprpicker hyprsunset
   imagemagick tesseract tesseract-data-eng swappy wf-recorder ffmpeg
-  brightnessctl ddcutil zenity kitty
+  brightnessctl ddcutil zenity kitty neofetch
   plasma-nm kde-cli-tools blueman
   dconf glib2 adw-gtk-theme xorg-xrdb
   libcanberra sound-theme-freedesktop pacman-contrib
@@ -377,6 +393,68 @@ if [ "$SESSION" = 1 ]; then
         fi
         [ "$mode" = lua ] && ! grep -rqs 'sekaipop_overrides' "$HYPR/hyprland.lua" 2>/dev/null && \
             warn 'also add this line to hyprland.lua so the Settings-panel Hyprland changes survive reloads:  pcall(require, "sekaipop_overrides")'
+    fi
+fi
+
+# ---------------------------------------------------------------- 4. Spotify and Discord themes
+# Optional, and only with your yes (docs/SPOTIFY-DISCORD-THEME.md). The work is the rice's
+# scripts/theming/app-setup.sh; install.sh asks these questions itself and passes the answers.
+APPSETUP="$(cd "$(dirname "$0")" && pwd)/sekaipop/scripts/theming/app-setup.sh"
+step "4. Spotify, Discord and login screen themes (optional)"
+if [ ! -f "$APPSETUP" ]; then
+    info "skipped (no sekaipop/scripts/theming/app-setup.sh next to this script)"
+else
+    export SEKAIPOP_DRY=$DRY SEKAIPOP_YES=$YES
+    for app in spotify discord; do
+        ans=$([ "$app" = spotify ] && echo "$SPOTIFY" || echo "$DISCORD")
+        st=$(bash "$APPSETUP" state "$app")
+        name=$([ "$app" = spotify ] && echo Spotify || echo Discord)
+        if [ "$st" = none ]; then
+            [ "$ans" = yes ] && warn "$name is not installed: skipped its theme" || info "$name: not installed"
+            continue
+        fi
+        if [ "$ans" = ask ]; then
+            if [ "$st" = ready ]; then ok "$name theme: already set up"; continue; fi
+            bash "$APPSETUP" explain "$app"
+            if ask_no "Set up the $name theme?"; then ans=yes; else ans=no; fi
+        fi
+        if [ "$ans" = no ]; then info "$name theme: not set up (Settings > Desktop > App colours, or ./install.sh --$app yes)"; continue; fi
+        if [ "$app" = spotify ]; then
+            bash "$APPSETUP" spotify-deps || fail "Spotify theme: could not finish (see above)"
+            # under install.sh the switch is turned on after the rice is copied
+            [ "${SEKAIPOP_FULL_INSTALL:-0}" = 1 ] || bash "$APPSETUP" spotify-on || fail "Spotify theme: could not turn the switch on"
+        else
+            bash "$APPSETUP" vencord-patch || fail "Discord theme: Vencord could not be installed (see above)"
+            [ "${SEKAIPOP_FULL_INSTALL:-0}" = 1 ] || bash "$APPSETUP" vencord-theme || fail "Discord theme: could not tick the theme"
+        fi
+    done
+fi
+
+# SekaiPop's SDDM login screen (docs/SDDM.md). Only where SDDM is installed; this never installs
+# or switches display managers.
+SDDMSH="$(cd "$(dirname "$0")" && pwd)/sekaipop/scripts/theming/sddm-theme.sh"
+if [ -f "$SDDMSH" ]; then
+    if ! have sddm; then
+        [ "$SDDM" = yes ] && warn "SDDM is not installed: skipped its login theme" || info "SDDM: not installed"
+    else
+        sst=$(sh "$SDDMSH" status)
+        if [ "$SDDM" = ask ]; then
+            if [ "$sst" = on ]; then ok "SDDM login screen: already SekaiPop's"; SDDM=no
+            else
+                sh "$SDDMSH" explain
+                if ask_no "Use SekaiPop's login screen (SDDM)?"; then SDDM=yes; else SDDM=no; fi
+            fi
+        fi
+        if [ "$SDDM" = yes ]; then
+            SDDMF=(--select); [ "$DRY" = 1 ] && SDDMF+=(--dry-run)
+            if sh "$SDDMSH" install "${SDDMF[@]}"; then
+                [ "$DRY" = 1 ] || ok "SDDM login screen: SekaiPop's (it shows at the next login; undo: ./install.sh --restore-sddm)"
+            else
+                fail "SDDM login screen: could not install the theme (see above)"
+            fi
+        else
+            info "SDDM login screen: not changed (later: ./install.sh --sddm yes)"
+        fi
     fi
 fi
 

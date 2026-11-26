@@ -103,6 +103,8 @@ Singleton {
         // What the phone's screens show behind them: "off", "desktop" or "picture";
         // "" = not chosen yet, launcher.lcdWallpaper decides (PanelImages.phoneMode).
         "phone.wallpaper": "",
+        // The picture neofetch shows (scripts/theming/neofetch.conf reads it from settings.json): "banner" | "avatar".
+        "terminal.fetchImage": "banner",
         "pictures.framing": "",         // JSON: which part of the banner / avatar / phone picture shows (PanelImages, Framing.js)
         "lock.blur": false,
         // The gacha lockscreen's endless sparkle animations. Off = they are not built, which saves GPU while locked.
@@ -263,6 +265,10 @@ Singleton {
         "appTheme.fish": false,
         "appTheme.prompt": false,      // the fish prompt: capsule pills with a hard shadow, in the theme's colours
         "appTheme.launcher": false,
+        // ===== Sounds =====
+        "sound.error": "default",      // the bell: default | soft | chime | pop | ding | off | file (SoundService)
+        "sound.errorFile": "",         // with "file": an .oga / .ogg / .wav
+        "appTheme.spotify": false,     // Spotify through Spicetify (spotify-theme.py); install.sh can turn it on
         "appTheme.hyprland": true,      // Hyprland's window border colours follow the theme (matugen's, with the Wallpaper theme); on for a first run
         // ===== System colours (GTK / Qt / KDE) =====
         "systemTheme.sync": true,

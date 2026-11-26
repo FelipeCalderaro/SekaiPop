@@ -517,6 +517,7 @@ Scope {
             panelFace.networkDialogOpen = false
             panelFace.bluetoothDialogOpen = false
             panelFace.nightLightDialogOpen = false
+            panelFace.idleDialogOpen = false
             panelFace.audioDialogKind = ""
             setRoute(PR.go(phoneRoute, kind))
             settingsOpen = true
@@ -939,7 +940,7 @@ Scope {
         }
         if (event.key === Qt.Key_Escape) {
             if (panelFace.powerMenuOpen || panelFace.networkDialogOpen || panelFace.bluetoothDialogOpen
-                    || panelFace.nightLightDialogOpen || panelFace.audioDialogKind !== "")
+                    || panelFace.nightLightDialogOpen || panelFace.idleDialogOpen || panelFace.audioDialogKind !== "")
                 closeQuickDialogs()
             else
                 root.back()
@@ -1070,6 +1071,7 @@ Scope {
             panelFace.networkDialogOpen = false
             panelFace.bluetoothDialogOpen = false
             panelFace.nightLightDialogOpen = false
+            panelFace.idleDialogOpen = false
             panelFace.audioDialogKind = ""
             hotBlockedUntil = Date.now() + 1200
             // It is the Settings on screen, not the Quick Panel: the Quick
@@ -2791,6 +2793,13 @@ Scope {
                         nightLightAuto: root.source.nightLightAuto
                         nightLightAutoFrom: root.source.nightLightAutoFrom
                         nightLightAutoTo: root.source.nightLightAutoTo
+                        idleLock: SettingsService.get("idle.lock")
+                        idleScreenOff: SettingsService.get("idle.screenOff")
+                        idleSleep: SettingsService.get("idle.sleep")
+                        idleSleepAction: SettingsService.get("idle.sleepAction") === "hibernate" ? "hibernate" : "suspend"
+                        // unknown yet ("") counts as linked: no warning until IdleService knows
+                        idleLinked: IdleService.linked !== "no" && IdleService.linked !== "missing"
+                        idleCanHibernate: IdleService.canHibernate !== "no"
                         gameModeOn: root.source.gameModeOn
                         darkModeOn: root.source.darkModeOn
                         darkModeName: root.source.darkModeName
@@ -2847,6 +2856,7 @@ Scope {
                         onNightLightTemperatureMoved: kelvin => root.source.setNightLightTemperature(kelvin)
                         onNightLightAutoRequested: on => root.source.setNightLightAuto(on)
                         onNightLightScheduleRequested: (from, to) => root.source.setNightLightSchedule(from, to)
+                        onIdleSettingRequested: (key, value) => SettingsService.set(key, value)
                         onGameModeToggled: root.source.toggleGameMode()
                         onDarkModeToggled: root.source.toggleDarkMode()
                         onEasyEffectsToggled: root.source.toggleEasyEffects()

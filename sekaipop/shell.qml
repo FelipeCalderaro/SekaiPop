@@ -164,6 +164,14 @@ ShellRoot {
     // here starts it with the shell.
     readonly property bool appThemingOn: AppThemeService.ready
 
+    // SekaiPop's SDDM login screen follows the theme (services/SddmThemeService.qml); it does
+    // nothing until the theme is installed (docs/SDDM.md).
+    readonly property bool sddmThemingOn: SddmThemeService.ready
+
+    // The error sound (services/SoundService.qml): started with the shell, so a change made with
+    // `ipc call options set sound.error ...` applies without Settings having been opened.
+    readonly property string errorSound: SoundService.choice
+
     // One tray for the whole shell, so a pin made from one monitor's
     // bar shows up on every other monitor's bar too.
     TraySource {

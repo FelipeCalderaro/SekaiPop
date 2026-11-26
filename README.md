@@ -74,7 +74,7 @@ Most shells pick one look and theme it. SekaiPop starts from a single design lan
 </tr>
 <tr>
 <td valign="top"><b>Presets that survive updates</b><br>Wearing an old preset doesn't drag in widgets that were added later. Lockscreen style, folder paths and other machine-specific choices are left alone. Wore the wrong one, or deleted one? There's an Undo for both.</td>
-<td valign="top"><b>Themes with personality</b><br>Six character-unit themes (Virtual Singer, Leo/need, MORE MORE JUMP!, Vivid BAD SQUAD, Wonderlands×Showtime, Nightcord at 25:00), Monochrome, Wallpaper (matugen) and a Custom palette, each in Light, Dark and Darker. They reach window borders, GTK, Qt and KDE colours, the terminal and a Vencord (Discord) theme.</td>
+<td valign="top"><b>Themes with personality</b><br>Six character-unit themes (Virtual Singer, Leo/need, MORE MORE JUMP!, Vivid BAD SQUAD, Wonderlands×Showtime, Nightcord at 25:00), Monochrome, Wallpaper (matugen) and a Custom palette, each in Light, Dark and Darker. They reach window borders, GTK, Qt and KDE colours, the terminal, a Vencord (Discord) theme and a Spicetify (Spotify) theme, both drawn in the shell's own blocks (docs/SPOTIFY-DISCORD-THEME.md). An SDDM login screen with the lockscreen's look can follow it too (docs/SDDM.md).</td>
 </tr>
 <tr>
 <td valign="top"><b>Shader wallpaper transitions</b><br>Ring, Iris, Star (it spins), Blocks, Flash, Fade and Random. The bands cover the whole desktop, then reveal the new wallpaper, in your theme's colours. The same transition plays into and out of the lockscreen.</td>
@@ -151,6 +151,8 @@ The portals are what make screen sharing work in Discord, browsers and OBS.
 <br>
 
 `python-aubio` `songrec` (song recognition), `mpvpaper` (video wallpapers), `nwg-displays`, `hypridle`, `nodejs` `pnpm` (Vencord plugin build), `cloudflare-warp-bin`
+
+Asked about separately (default no, never by `--yes` alone; `--spotify yes|no`, `--discord yes|no`): `spicetify-cli` for the Spotify theme (Spotify's folder is made writable once), and Vencord for the Discord theme (the installer downloads the official Vencord installer and patches Discord with it). See docs/SPOTIFY-DISCORD-THEME.md.
 
 </details>
 
@@ -288,7 +290,7 @@ Edit the files in `~/.config/hypr/custom/` (`keybinds.lua`, `rules.lua`, `variab
 
 A plugin is a desktop widget, an entry in the bar with a card under it, or both, kept in its own folder, usually its own repo: put one in `~/.config/sekaipop/plugins/` (most come with an `install.sh` that does it), run `qs -c sekaipop ipc call plugins reload`, then add its widget from Edit Desktop and switch its bar entry on in Settings > Bar > Modules. A plugin runs with the shell's full rights, so install only what you would run as your own script. Writing one, and the interface it gets: [Plugins](docs/PLUGINS.md); the smallest examples are [hello clock](examples/plugins/hello-clock/) (a widget) and [hello bar](examples/plugins/hello-bar/) (a bar entry).
 
-The plugins bundled in [`plugins/`](plugins/) are installed by `install.sh` along with the rest (their bar entries stay off until you turn them on): [AniList](plugins/anilist/) shows what you're watching and reading, the next episode's countdown, and +1 from its card, and you connect and configure it from that card.
+The plugins bundled in [`plugins/`](plugins/) are installed by `install.sh` along with the rest (their bar entries stay off until you turn them on): [AniList](plugins/anilist/) shows what you're watching and reading, the next episode's countdown, and +1 from its card, and you connect and configure it from that card. Seven desktop widgets come with it, each added from Edit Desktop's shelf: a live **Market Ticker** (candlesticks from Binance's public data), a **Ping Board** with a speed test, a **GIF Frame**, a **Cover Wall** of what you've been playing with a spinning record, **Countdowns**, a **Rain Radar**, and **Desk Pet** Mochi (docs/WIDGET-PLUGINS.md).
 
 <!-- plugin-list -->
 | Plugin | What it adds |

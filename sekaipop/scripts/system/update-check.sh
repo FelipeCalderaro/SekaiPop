@@ -16,15 +16,18 @@
 #
 # Where it looks, in order:
 #   1. A git checkout: this folder is a clone itself, or it is the sekaipop/ folder
-#      of a SekaiPop clone (the repo layout). It compares with the branch's upstream
-#      and `apply` is `git pull --ff-only`.
+#      of a SekaiPop clone (the repo layout). It compares with the same branch on the
+#      `origin` remote (your fork), whatever the branch tracks and whatever other
+#      remotes (an `upstream`) the clone has; `apply` is `git pull --ff-only origin <branch>`.
 #   2. An installed copy (what install.sh makes: ~/.config/quickshell/sekaipop, no
 #      .git inside). The repo is read from the ".source" file install.sh and this
 #      script keep next to shell.qml (commit= / repo= / ref=), else from
-#      $SEKAIPOP_REPO, else ~/.config/sekaipop/update-repo, else the SekaiPop repo on
-#      GitHub; the branch is ref= (else $SEKAIPOP_REF, else main). `check` only asks
-#      the remote for its newest commit (git ls-remote) and compares it with
-#      commit=. `apply` downloads that commit into a temporary folder, builds the new
+#      $SEKAIPOP_REPO, else ~/.config/sekaipop/update-repo, else the fork on GitHub
+#      (FelipeCalderaro/SekaiPop); install.sh writes the checkout's `origin` there. The
+#      branch is ref= (else $SEKAIPOP_REF, else main). `check` only asks the remote for
+#      its newest commit (git ls-remote) and compares it with commit=. When the install
+#      came from commits not pushed yet (src= names the checkout, and the remote's commit
+#      is an ancestor of commit= there), that is current, not an update. `apply` downloads that commit into a temporary folder, builds the new
 #      folder beside this one, keeps the old one as sekaipop.previous (one copy) and
 #      swaps them. Needs git. A symlink on the way (the folder itself, or ~/.config
 #      kept in a dotfiles repo) is followed: the real folder is the one replaced, so
@@ -61,7 +64,14 @@ if have_git; then
     fi
 fi
 is_git() { [ -n "$root" ]; }
-has_up() { git -C "$root" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; }
+# The same branch on `origin` (main when HEAD is detached).
+branch=""
+if is_git; then
+    branch=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    { [ -n "$branch" ] && [ "$branch" != HEAD ]; } || branch=main
+fi
+up="refs/remotes/origin/$branch"
+has_up() { git -C "$root" remote get-url origin >/dev/null 2>&1; }
 
 # --- 2. an installed copy ---------------------------------------------------
 cfgdir="${XDG_CONFIG_HOME:-$HOME/.config}/sekaipop"
@@ -71,7 +81,7 @@ installed=$(mark commit)
 repo="$SEKAIPOP_REPO"
 [ -n "$repo" ] || repo=$(mark repo)
 [ -n "$repo" ] || repo=$(head -n 1 "$cfgdir/update-repo" 2>/dev/null | tr -d '\r')
-[ -n "$repo" ] || repo=https://github.com/Blapples/SekaiPop.git
+[ -n "$repo" ] || repo=https://github.com/FelipeCalderaro/SekaiPop.git
 ref="$SEKAIPOP_REF"
 [ -n "$ref" ] || ref=$(mark ref)
 { [ -n "$ref" ] && [ "$ref" != HEAD ]; } || ref=main
@@ -145,18 +155,22 @@ case "$cmd" in
         ;;
     check)
         if is_git && has_up; then
-            limit 60 git -C "$root" fetch --quiet || { echo "status=error"; echo "reason=fetch failed"; exit 0; }
-            n=$(git -C "$root" rev-list --count 'HEAD..@{u}' 2>/dev/null || echo 0)
+            limit 60 git -C "$root" fetch --quiet origin "+refs/heads/$branch:$up" \
+                || { echo "status=error"; echo "reason=fetch from origin failed"; exit 0; }
+            n=$(git -C "$root" rev-list --count "HEAD..$up" 2>/dev/null || echo 0)
             if [ "$n" -gt 0 ]; then echo "status=behind"; else echo "status=current"; fi
             echo "behind=$n"
-            echo "rev=$(git -C "$root" rev-parse --short '@{u}' 2>/dev/null)"
+            echo "rev=$(git -C "$root" rev-parse --short "$up" 2>/dev/null)"
         elif is_managed; then
             head=$(remote_head)
             [ -n "$head" ] || { echo "status=error"; echo "reason=couldn't reach the repository"; exit 0; }
             echo "latest=$(short "$head")"
             echo "rev=$(short "$head")"
+            src=$(mark src)
             if [ -z "$installed" ]; then echo "unknown=yes"; echo "status=behind"
             elif [ "$installed" = "$head" ]; then echo "status=current"
+            elif [ -n "$src" ] && git -C "$src" merge-base --is-ancestor "$head" "$installed" 2>/dev/null; then
+                echo "status=current"
             else echo "status=behind"; fi
         elif [ -n "$url" ]; then
             command -v curl >/dev/null 2>&1 || { echo "status=error"; echo "reason=curl not installed"; exit 0; }
@@ -181,12 +195,12 @@ case "$cmd" in
         ;;
     log)
         is_git && has_up || exit 0
-        git -C "$root" log --pretty=format:'%h|%s|%cr' -n 30 'HEAD..@{u}' 2>/dev/null
+        git -C "$root" log --pretty=format:'%h|%s|%cr' -n 30 "HEAD..$up" 2>/dev/null
         ;;
     apply)
         if is_git; then
-            has_up || { echo "this clone has no upstream branch"; exit 1; }
-            out=$(git -C "$root" pull --ff-only 2>&1); rc=$?
+            has_up || { echo "this clone has no origin remote"; exit 1; }
+            out=$(git -C "$root" pull --ff-only origin "$branch" 2>&1); rc=$?
             printf '%s\n' "$out" | tail -n 1
             exit "$rc"
         elif is_managed; then

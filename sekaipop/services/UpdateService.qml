@@ -107,7 +107,7 @@ Singleton {
         if (byUser || !root.watching)
             return
         const what = root.isGit && root.behind > 0
-            ? root.behind + (root.behind === 1 ? " new commit is" : " new commits are") + " waiting upstream."
+            ? root.behind + (root.behind === 1 ? " new commit is" : " new commits are") + " waiting on origin."
             : (!root.isGit && !root.managed && root.latest !== "" ? "Version " + root.latest + " is out." : "A newer version is on GitHub.")
         Quickshell.execDetached(["notify-send", "-a", "sekaipop", "-i", "material:system_update",
             "SekaiPop update available", what + " Open Settings \u2192 About / Update to install it."])

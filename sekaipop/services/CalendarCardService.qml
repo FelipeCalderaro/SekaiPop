@@ -30,12 +30,33 @@ import qs.modules.common
 Singleton {
     id: root
 
-    // The events, in the order EventMath.sorted gives (date, all-day first, time).
+    // The events, in the order EventMath.sorted gives (date, all-day first, time): yours
+    // (`mine`, the only ones saved) and the subscribed calendars' (`remote`, read-only,
+    // `remote: true`, ids "g:N"), merged. Everything that draws reads this one.
     property var events: []
+    property var mine: []
+
+    // ===== subscribed calendars (Google, any .ics link) =====
+    // scripts/calendar/ics-sync.py: the links live in ~/.config/sekaipop/calendars.json
+    // (yours only, never in settings.json or a preset), the events it last fetched in
+    // ~/.cache/sekaipop/calendar/events.json. Google Calendar: a calendar's Settings ->
+    // Integrate calendar -> "Secret address in iCal format". No API key, no OAuth.
+    //   calendars   [{ name, color, host }]  (never the link itself)
+    //   syncErrors  [{ name, error }] from the last fetch
+    //   syncedAt    "YYYY-MM-DD HH:MM" of the last fetch, "" = never
+    //   syncing     a fetch is under way
+    property var remote: []
+    property var calendars: []
+    property var syncErrors: []
+    property string syncedAt: ""
+    readonly property bool syncing: fetcher.running
+    // How often the calendars are fetched again while the shell runs, in minutes.
+    property int syncMinutes: 15
+    readonly property string syncScript: Directories.script("calendar/ics-sync.py")
     // { "2026-10-23": [event, ...] }
     property var byDay: ({})
     readonly property int count: root.events.length
-    readonly property bool full: root.events.length >= EM.MAX_EVENTS
+    readonly property bool full: root.mine.length >= EM.MAX_EVENTS
 
     // False until the saved state has been read. Nothing is written before
     // then, or a fresh start would overwrite what's on disk with an empty list.
@@ -62,9 +83,163 @@ Singleton {
 
     // ===== events =====
     function setEvents(list) {
-        const s = EM.sorted(list)
+        root.mine = EM.sorted(list)
+        root.rebuild()
+    }
+
+    function rebuild() {
+        const s = EM.sorted(root.mine.concat(root.remote))
         root.events = s
         root.byDay = EM.byDay(s)
+    }
+
+    // An event from a subscribed calendar: shown, never changed from here.
+    function isRemote(e) {
+        return !!e && e.remote === true
+    }
+
+    // The fetch's events -> the card's shape (EventMath.clean), each marked remote.
+    function setRemote(list) {
+        const out = []
+        const src = Array.isArray(list) ? list : []
+        for (let i = 0; i < src.length && out.length < 3000; i++) {
+            const c = EM.clean(src[i])
+            if (!c)
+                continue
+            c.id = "g:" + i
+            c.remote = true
+            c.src = typeof src[i].src === "string" ? src[i].src : ""
+            out.push(c)
+        }
+        root.remote = out
+        root.rebuild()
+    }
+
+    function applyFetch(text) {
+        try {
+            const r = JSON.parse(text)
+            root.setRemote(r.events)
+            root.syncErrors = Array.isArray(r.errors) ? r.errors : []
+            root.syncedAt = typeof r.at === "string" ? r.at : ""
+        } catch (e) {
+            // A half-written cache or a crashed fetch: keep what is shown.
+        }
+    }
+
+    function sync() {
+        if (!fetcher.running && root.calendars.length > 0)
+            fetcher.running = true
+    }
+
+    function refreshCalendars() {
+        if (!lister.running)
+            lister.running = true
+    }
+
+    // Adds a calendar from its secret link. The link goes to the script on stdin, so it
+    // never shows in the process list. done(error): "" when it worked.
+    property var addDone: null
+    function addCalendar(name, url, done) {
+        if (adder.running)
+            return
+        root.addDone = done || null
+        adder.name = String(name || "").trim() || "Calendar"
+        adder.url = String(url || "").trim()
+        adder.running = true
+    }
+
+    function removeCalendar(index) {
+        Quickshell.execDetached(["python3", "-I", root.syncScript, "remove", String(index)])
+        // Its events go at the next fetch; drop them from the card now too.
+        const gone = root.calendars[index] ? root.calendars[index].name : ""
+        root.calendars = root.calendars.filter((c, i) => i !== index)
+        root.setRemote(root.remote.filter(e => e.src !== gone))
+        relistTimer.restart()
+    }
+
+    Timer {
+        id: relistTimer
+        interval: 400
+        onTriggered: { root.refreshCalendars(); root.sync() }
+    }
+
+    Process {
+        id: lister
+        running: true
+        command: ["python3", "-I", root.syncScript, "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const l = JSON.parse(text)
+                    root.calendars = Array.isArray(l) ? l : []
+                } catch (e) {
+                    root.calendars = []
+                }
+                // First list at startup: fetch fresh once the cached events are up.
+                if (!root.startedSync) {
+                    root.startedSync = true
+                    root.sync()
+                }
+            }
+        }
+    }
+    property bool startedSync: false
+
+    // What the last fetch found, so the card is full straight away at startup.
+    Process {
+        running: true
+        command: ["python3", "-I", root.syncScript, "cached"]
+        stdout: StdioCollector {
+            onStreamFinished: root.applyFetch(text)
+        }
+    }
+
+    Process {
+        id: fetcher
+        command: ["python3", "-I", root.syncScript, "fetch"]
+        stdout: StdioCollector {
+            onStreamFinished: root.applyFetch(text)
+        }
+    }
+
+    Process {
+        id: adder
+        property string name: ""
+        property string url: ""
+        stdinEnabled: true
+        command: ["python3", "-I", root.syncScript, "add", adder.name]
+        onStarted: {
+            adder.write(adder.url + "\n")
+            adder.url = ""
+            adder.stdinEnabled = false
+        }
+        stderr: StdioCollector {
+            id: adderErr
+        }
+        onExited: (code) => {
+            adder.stdinEnabled = true
+            const done = root.addDone
+            root.addDone = null
+            if (done)
+                done(code === 0 ? "" : (adderErr.text.trim() || "couldn't add it"))
+            if (code === 0) {
+                root.refreshCalendars()
+                fetchSoon.restart()
+            }
+        }
+    }
+
+    Timer {
+        id: fetchSoon
+        interval: 500
+        onTriggered: root.sync()
+    }
+
+    Timer {
+        interval: Math.max(5, root.syncMinutes) * 60000
+        repeat: true
+        running: root.calendars.length > 0
+        onTriggered: root.sync()
     }
 
     function find(id) {
@@ -84,8 +259,8 @@ Singleton {
         const c = EM.clean(fields)
         if (!c)
             return ""
-        c.id = EM.newId(root.events)
-        root.setEvents(root.events.concat([c]))
+        c.id = EM.newId(root.mine)
+        root.setEvents(root.mine.concat([c]))
         root.persist()
         return c.id
     }
@@ -95,12 +270,12 @@ Singleton {
     // and the event stays as it was.
     function update(id, fields) {
         const old = root.find(id)
-        if (!old)
+        if (!old || root.isRemote(old))
             return false
         const next = EM.changed(old, fields)
         if (!next)
             return false
-        root.setEvents(root.events.map(e => e.id === id ? next : e))
+        root.setEvents(root.mine.map(e => e.id === id ? next : e))
         root.persist()
         return true
     }
@@ -110,9 +285,10 @@ Singleton {
     }
 
     function remove(id) {
-        if (!root.find(id))
+        const e = root.find(id)
+        if (!e || root.isRemote(e))
             return false
-        root.setEvents(root.events.filter(e => e.id !== id))
+        root.setEvents(root.mine.filter(e => e.id !== id))
         root.persist()
         return true
     }
@@ -162,7 +338,7 @@ Singleton {
             screen: root.screenName,
             shown: root.shown,
             size: root.size,
-            events: root.events
+            events: root.mine
         })
     }
 

@@ -575,6 +575,108 @@ SettingsPage {
 
     // Desktop Focus Mode (services/FocusService.qml, modules/sekai/desktopWidgets/FocusGate.qml):
     // the widgets above go away while applications are on the workspace.
+    // ===== Google calendars (any .ics link) on the calendar card =====
+    // The link is pasted here and handed to CalendarCardService.addCalendar, which gives it
+    // to scripts/calendar/ics-sync.py on stdin; it is kept in ~/.config/sekaipop/calendars.json
+    // (yours only) and never shown again, only the calendar's name.
+    property string calName: ""
+    property string calLinkDraft: ""
+    property string calNote: ""
+    property int calArmed: -1
+
+    Timer {
+        id: calDraftClear
+        interval: 60
+        onTriggered: page.calLinkDraft = ""
+    }
+
+    Timer {
+        id: calDisarm
+        interval: 2800
+        onTriggered: page.calArmed = -1
+    }
+
+    SectionCard {
+        id: gcalCard
+        title: "Google calendars"
+        icon: "event"
+
+        Text {
+            width: gcalCard.innerWidth
+            wrapMode: Text.WordWrap
+            text: "Your Google Calendar events on the calendar card, read-only, from any account. No API key or sign-in: in Google Calendar on the web, open a calendar's Settings > Integrate calendar, copy the \"Secret address in iCal format\" and paste it below. One link per calendar. Any other .ics link works too. Treat the link like a password: anyone with it can read that calendar."
+            color: mt.pInkSub
+            font.family: mt.fontFamily
+            font.pixelSize: 16
+        }
+
+        Repeater {
+            model: CalendarCardService.calendars
+
+            SettingAction {
+                required property var modelData
+                required property int index
+                icon: "event_available"
+                label: modelData.name
+                detail: page.calArmed === index ? "Click again to remove it" : "From " + modelData.host + " · click to remove"
+                onActivated: {
+                    if (page.calArmed === index) {
+                        page.calArmed = -1
+                        calDisarm.stop()
+                        CalendarCardService.removeCalendar(index)
+                    } else {
+                        page.calArmed = index
+                        calDisarm.restart()
+                    }
+                }
+            }
+        }
+
+        SettingText {
+            label: "Name"
+            sublabel: "What the card calls it (Work, Personal...)"
+            value: page.calName
+            placeholder: "optional"
+            onEdited: text => page.calName = text
+            onSubmitted: text => page.calName = text
+            onCleared: page.calName = ""
+        }
+
+        SettingText {
+            label: "Secret iCal link"
+            sublabel: page.calNote !== "" ? page.calNote : "Paste it and press Enter"
+            value: page.calLinkDraft
+            placeholder: "https://calendar.google.com/calendar/ical/..."
+            clearable: false
+            onSubmitted: text => {
+                page.calNote = "Adding..."
+                const name = page.calName.trim() !== "" ? page.calName.trim()
+                           : "Google " + (CalendarCardService.calendars.length + 1)
+                CalendarCardService.addCalendar(name, text, err => {
+                    page.calNote = err === "" ? "Added. Its events are on their way to the card" : err
+                    if (err === "")
+                        page.calName = ""
+                })
+                page.calLinkDraft = text
+                calDraftClear.restart()
+            }
+        }
+
+        SettingAction {
+            visible: CalendarCardService.calendars.length > 0
+            icon: "sync"
+            label: "Sync now"
+            busy: CalendarCardService.syncing
+            detail: CalendarCardService.syncing ? "Fetching..."
+                  : CalendarCardService.syncErrors.length > 0
+                    ? CalendarCardService.syncErrors.map(e => e.name + ": " + e.error).join(" · ")
+                  : CalendarCardService.syncedAt !== ""
+                    ? "Last synced " + CalendarCardService.syncedAt.slice(11) + " · every " + CalendarCardService.syncMinutes + " min"
+                    : "Not synced yet"
+            onActivated: CalendarCardService.sync()
+        }
+    }
+
     SectionCard {
         title: "Desktop Focus"
 

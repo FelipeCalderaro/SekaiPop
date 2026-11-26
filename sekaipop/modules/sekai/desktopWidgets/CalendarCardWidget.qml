@@ -380,6 +380,9 @@ PanelWindow {
         const e = id !== "" ? CalendarCardService.find(id) : null
         if (!e && CalendarCardService.full)
             return
+        // A subscribed calendar's event is read-only here.
+        if (CalendarCardService.isRemote(e))
+            return
         win.formId = e ? e.id : ""
         win.formKind = e ? e.kind : "event"
         win.formColor = e ? e.color : (win.events.length % 5)

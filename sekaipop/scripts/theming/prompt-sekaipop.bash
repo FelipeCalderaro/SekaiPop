@@ -35,7 +35,14 @@ __sekaipop_prompt() {
     fi
     [ -f '@BIN@' ] || return "$st"
     out=$(sh '@BIN@' "$st" "$ms" "$PWD" "${COLUMNS:-80}")
-    rows=$(printf '%s' "${out%$'\n'*}" | sed -e 's/[\\$`]/\\&/g' -e 's/\x1b\[[0-9;]*m/\\[&\\]/g')
+    # Escape \ $ ` (PS1 is expanded) and wrap every colour in \[ \] (readline's width).
+    __sekaipop_ps() { printf '%s' "$1" | sed -e 's/[\\$`]/\\&/g' -e 's/\x1b\[[0-9;]*m/\\[&\\]/g'; }
+    if [[ $out != *$'\n'* ]]; then
+        # one line (the pill style): the script drew the arrow too
+        PS1="$(__sekaipop_ps "$out")"
+        return "$st"
+    fi
+    rows=$(__sekaipop_ps "${out%$'\n'*}")
     [ "$st" -ne 0 ] && ac=244
     PS1="${rows}\n\[\e[1;38;5;${ac}m\] "$'\357\201\213'"\[\e[0m\] "
     return "$st"
@@ -44,5 +51,8 @@ __sekaipop_prompt() {
 
 if [[ ${BLE_VERSION-} ]]; then
     bleopt complete_auto_history=1 2>/dev/null
+    # The prompt's own pills already say a command failed and how long it took.
+    bleopt exec_errexit_mark= 2>/dev/null
+    bleopt exec_elapsed_enabled=0 2>/dev/null
     ble-attach
 fi

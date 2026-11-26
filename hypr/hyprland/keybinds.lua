@@ -31,13 +31,21 @@ shell("SUPER + A", "launcherphone toggle", "Toggle apps")
 shell("SUPER + N", "quickpanel toggle", "Toggle quick panel")
 shell("SUPER + Tab", "overview toggle", "Toggle overview")
 shell("SUPER + I", "settings toggle", "Toggle settings")
-shell("SUPER + Slash", "cheatsheet toggle", "Toggle cheatsheet")
+-- Punctuation keys are bound by POSITION (code:N, the key's place on a US board), not by the
+-- character they type. Hyprland resolves character binds against the FIRST layout in kb_layout
+-- (input:resolve_binds_by_sym is off), whichever layout you are typing in: with "br,us", the
+-- key in the US "/" spot is Brazilian ";" even while typing English, so "SUPER + Slash" missed
+-- and "SUPER + Semicolon" (split ratio) fired instead. A code: bind is the same key in every
+-- layout. code:61 is the US "/" spot; Slash stays as an extra, for a "/" key elsewhere
+-- (ABNT2's own, beside right Shift).
+shell("SUPER + code:61", "cheatsheet toggle", "Toggle cheatsheet")
+shell("SUPER + Slash", "cheatsheet toggle", "Toggle cheatsheet", true)
 shell("SUPER + K", "keyboard toggle", "Toggle on-screen keyboard")
 shell("SUPER + M", "eq open", "Toggle equalizer")
 shell("SUPER + G", "gamemode toggle", "Toggle game mode")
 shell("SUPER + SHIFT + E", "desktopedit toggle", "Edit desktop")
 shell("SUPER + SHIFT + F", "focus toggle", "Toggle focus mode")
-shell("SUPER + SHIFT + ALT + Slash", "welcome show", "Welcome tour", true)
+shell("SUPER + SHIFT + ALT + code:61", "welcome show", "Welcome tour", true)
 shell("SUPER + Escape", "phone go power", "Toggle power options")
 
 -- Look
@@ -155,7 +163,7 @@ for i = 1, 4 do
         { description = "Windows: Focus window in direction" })
 end
 for i = 1, 2 do
-    local arrowkey = { "BracketLeft", "BracketRight" }
+    local arrowkey = { "code:34", "code:35" } -- the US [ and ] spots, in any layout
     local focusdir = { "l", "r" }
     hl.bind("SUPER + " .. arrowkey[i], hl.dsp.focus({ direction = focusdir[i] }),
         { description = "Windows (more): Focus window left/right" })
@@ -178,9 +186,10 @@ hl.bind("SUPER + Q", hl.dsp.window.close(), { description = "Windows: Close wind
 hl.bind("SUPER + SHIFT + ALT + Q", hl.dsp.exec_cmd("hyprctl kill"), { description = "Windows: Forcefully zap a window" })
 
 --# Window split ratio
-hl.bind("SUPER + Semicolon", hl.dsp.layout("splitratio -0.1"),
+-- code:47 / code:48: the US ";" and "'" spots (ç and ~ on ABNT2), see the cheatsheet bind above.
+hl.bind("SUPER + code:47", hl.dsp.layout("splitratio -0.1"),
     { repeating = true, description = "Windows: Adjust split ratio" })
-hl.bind("SUPER + Apostrophe", hl.dsp.layout("splitratio +0.1"),
+hl.bind("SUPER + code:48", hl.dsp.layout("splitratio +0.1"),
     { repeating = true, description = "Windows: Adjust split ratio" })
 --# Positioning mode
 hl.bind("SUPER + ALT + Space", hl.dsp.window.float({ action = "toggle" }), { description = "Windows: Float/Tile" })
@@ -289,7 +298,7 @@ hl.bind("SUPER + S", hl.dsp.workspace.toggle_special("special"), { description =
 hl.bind("SUPER + mouse:275", hl.dsp.workspace.toggle_special("special"),
     { description = "Workspaces (more): Toggle scratchpad" })
 for i = 1, 4 do
-    local key = { "BracketLeft", "BracketRight", "Up", "Down" }
+    local key = { "code:34", "code:35", "Up", "Down" } -- code:34/35: the US [ and ] spots
     local prefix = { "-1", "+1", "r-5", "r+5" }
     hl.bind("CTRL + SUPER + " .. key[i], hl.dsp.focus({ workspace = prefix[i] }),
         { description = (i <= 2) and "Workspaces (more): Focus previous/next workspace"

@@ -68,10 +68,26 @@ var SHOW = {
     Page_Up: "PgUp", Page_Down: "PgDn", Escape: "Esc", Delete: "Del", Insert: "Ins"
 }
 
+// Punctuation bound by position (keybinds.lua binds it as code:N so it is the same key in every
+// layout): the key's name on a US board, which is how the editor's keyboard names its keys.
+var CODE_NAMES = { 20: "minus", 21: "equal", 34: "bracketleft", 35: "bracketright",
+                   47: "semicolon", 48: "apostrophe", 49: "grave", 51: "backslash",
+                   59: "comma", 60: "period", 61: "slash" }
+
+function posName(key) {
+    var k = String(key || "")
+    var m = /^code:(\d+)$/.exec(k)
+    return m && CODE_NAMES[Number(m[1])] !== undefined ? CODE_NAMES[Number(m[1])] : k
+}
+
 function showKey(key) {
     var k = String(key)
     if (SHOW[k] !== undefined) return SHOW[k]
-    if (k.indexOf("code:") === 0) return "Key " + k.slice(5)
+    if (k.indexOf("code:") === 0) {
+        var named = posName(k)
+        if (named !== k && SHOW[named] !== undefined) return SHOW[named]
+        return "Key " + k.slice(5)
+    }
     return k.length === 1 ? k.toUpperCase() : k
 }
 

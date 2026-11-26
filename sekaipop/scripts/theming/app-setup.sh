@@ -163,7 +163,23 @@ spotify_deps() {
         [ -z "$helper" ] && have paru && helper=paru
         if [ -n "$helper" ]; then
             local f=(-S --needed); [ "$YES" = 1 ] && f+=(--noconfirm)
-            run "$helper" "${f[@]}" spicetify-cli && ok "installed Spicetify" || { bad "could not install spicetify-cli from the AUR"; rc=1; }
+            # spicetify-cli's build runs `node scripts/build-wrapper.mjs`, but its PKGBUILD only
+            # lists go and pnpm, and Arch's pnpm is a standalone binary that doesn't bring
+            # nodejs: without node the build stops there. Install nodejs first (as a dependency,
+            # so `pacman -Qdtq` can clean it up later). If the build still fails, the prebuilt
+            # spicetify-bin (same tool, provides spicetify-cli) needs no build at all.
+            if ! have node; then
+                info "spicetify-cli's build needs nodejs, which its package doesn't pull in"
+                run "$helper" "${f[@]}" --asdeps nodejs || warn "could not install nodejs; trying the build anyway"
+            fi
+            if run "$helper" "${f[@]}" spicetify-cli; then
+                ok "installed Spicetify"
+            elif warn "spicetify-cli didn't build; trying the prebuilt spicetify-bin" \
+                && run "$helper" "${f[@]}" spicetify-bin; then
+                ok "installed Spicetify (spicetify-bin)"
+            else
+                bad "could not install Spicetify from the AUR (spicetify-cli or spicetify-bin)"; rc=1
+            fi
         else
             bad "no AUR helper (yay or paru): install spicetify-cli yourself, then run this again"; rc=1
         fi

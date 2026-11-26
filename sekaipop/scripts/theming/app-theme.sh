@@ -444,35 +444,17 @@ prompt_bin="$fish_state/prompt.sh"
 prompt_seq="$fish_state/prompt-sequences.txt"
 prompt_conf="$cfg/fish/conf.d/sekaipop-prompt.fish"
 prompt_indices="255 252 254 235 240 241 244 243"
-# bash: the same plates, from a file of ours that ONE managed block at the end of ~/.bashrc
-# sources. PROMPT_COMMAND prints the plate rows (the script's first rows) and PS1 is only the
-# arrow, with its colours inside \[ \] so readline knows how wide it is. The command time
-# comes from PS0, which writes $EPOCHREALTIME to a small file just before each command runs.
+# bash: the same plates, from prompt-sekaipop.bash (a template: see the notes in it), copied
+# to the state folder and sourced by ONE managed block at the end of ~/.bashrc. It also loads
+# ble.sh when installed: suggestions from your history as you type.
 prompt_bash="$fish_state/prompt.bash"
 bashrc="$HOME/.bashrc"
 
+prompt_bash_src="$here/prompt-sekaipop.bash"
 prompt_bash_write() {
-    {
-        echo "# sekaipop: managed file, removed by Settings -> Desktop -> App colours (revert)"
-        echo "[[ \$- == *i* ]] || return 0"
-        echo "[ -f '$prompt_seq' ] && cat '$prompt_seq'"
-        echo "__sekaipop_tf=\"\${XDG_RUNTIME_DIR:-/tmp}/sekaipop-prompt-\$\$\""
-        echo "PS0='\$(printf %s \"\${EPOCHREALTIME/[.,]/}\" > \"\$__sekaipop_tf\")'"
-        echo "__sekaipop_prompt() {"
-        echo "    local st=\$? ms=0 t0 now out ac=243"
-        echo "    if [ -f \"\$__sekaipop_tf\" ]; then"
-        echo "        read -r t0 < \"\$__sekaipop_tf\"; rm -f \"\$__sekaipop_tf\""
-        echo "        now=\${EPOCHREALTIME/[.,]/}; ms=\$(( (now - t0) / 1000 ))"
-        echo "    fi"
-        echo "    if [ -f '$prompt_bin' ]; then"
-        echo "        out=\$(sh '$prompt_bin' \"\$st\" \"\$ms\" \"\$PWD\" \"\${COLUMNS:-80}\")"
-        echo "        printf '%s\\n' \"\${out%\$'\\n'*}\""
-        echo "        [ \"\$st\" -ne 0 ] && ac=244"
-        echo "        PS1=\"\\[\\e[1;38;5;\${ac}m\\] \$(printf '\\357\\201\\213')\\[\\e[0m\\] \""
-        echo "    fi"
-        echo "}"
-        echo "[[ \$PROMPT_COMMAND == *__sekaipop_prompt* ]] || PROMPT_COMMAND=\"__sekaipop_prompt\${PROMPT_COMMAND:+;\$PROMPT_COMMAND}\""
-    } > "$prompt_bash.tmp" && mv "$prompt_bash.tmp" "$prompt_bash"
+    [ -f "$prompt_bash_src" ] || { echo "prompt-sekaipop.bash is missing next to app-theme.sh" >&2; return 1; }
+    sed -e "s|@SEQ@|$prompt_seq|g" -e "s|@BIN@|$prompt_bin|g" "$prompt_bash_src" > "$prompt_bash.tmp" \
+        && mv "$prompt_bash.tmp" "$prompt_bash"
 }
 
 # index colour, one pair per line: 255 the folder plate, 252 the git-branch plate, 254 the

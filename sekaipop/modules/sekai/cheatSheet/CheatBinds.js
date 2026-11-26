@@ -137,11 +137,15 @@ function keyName(raw) {
     var low = k.toLowerCase();
     if (KEY_NAMES[low])
         return KEY_NAMES[low];
+    // Punctuation bound by position (keybinds.lua): the key's character on a US board.
+    var CODE_PUNCT = { 20: "-", 21: "=", 34: "[", 35: "]", 47: ";", 48: "'", 49: "`",
+                       51: "\\", 59: ",", 60: ".", 61: "/" };
     var m = low.match(/^code:(\d+)$/);
     if (m) {
         var n = Number(m[1]);
         if (n >= 10 && n <= 18) return String(n - 9);   // top-row digits, standard layout
         if (n === 19) return "0";
+        if (CODE_PUNCT[n]) return CODE_PUNCT[n];
         return "#" + n;
     }
     if (low.indexOf("xf86") === 0) return k.slice(4);

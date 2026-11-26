@@ -48,4 +48,13 @@ The font is the first one installed, best first (all Nerd Fonts, which the promp
 Settings > Desktop > App colours > **Terminal prompt**: outlined sticker plates (folder, git
 branch, command time, a red one with the exit code after a failure). fish gets a conf.d file;
 bash gets `~/.local/state/sekaipop/terminal/prompt.bash`, sourced by one managed block at the end
-of `~/.bashrc` (PROMPT_COMMAND prints the plates, PS1 is only the arrow, PS0 times the command).
+of `~/.bashrc` (the plates go into PS1 with every escape wrapped in `\[ \]`, folder and branch
+names escaped so nothing in them runs; PS0 times the command).
+
+The git plate shows the branch (the short commit when detached), a dot when there are
+uncommitted changes, and how far it is ahead of / behind its upstream: `main ● ↑2 ↓1`.
+
+**History as you type (bash):** when [ble.sh](https://github.com/akinomyoga/ble.sh) is installed
+(AUR `blesh-git`, which install-deps.sh adds, or a per-user install in `~/.local/share/blesh`),
+the prompt loads it: fish-style grey suggestions from your history while you type (Right arrow or
+End takes them) and syntax colours. fish does this by itself.

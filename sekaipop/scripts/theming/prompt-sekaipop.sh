@@ -105,13 +105,33 @@ else
 fi
 
 # git branch (or the short commit when detached), only inside a repository
+# One `git status` gives all of it: the branch (or the short commit when detached), how far
+# it is ahead of / behind its upstream (↑2 ↓1) and a dot when there are uncommitted changes.
 t_git=""
-if command -v git >/dev/null 2>&1; then
-    t_git=$(git symbolic-ref --short -q HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+if command -v git >/dev/null 2>&1 && gs=$(git status --porcelain=v2 --branch 2>/dev/null); then
+    g_head=""; g_oid=""; g_ab=""; g_dirty=0
+    while IFS= read -r l; do
+        case "$l" in
+            "# branch.head "*) g_head=${l#"# branch.head "} ;;
+            "# branch.oid "*) g_oid=${l#"# branch.oid "} ;;
+            "# branch.ab "*) g_ab=${l#"# branch.ab "} ;;
+            "#"*) ;;
+            ?*) g_dirty=1 ;;
+        esac
+    done <<EOF
+$gs
+EOF
+    if [ "$g_head" = "(detached)" ]; then t_git=$(printf '%.7s' "$g_oid"); else t_git=$g_head; fi
     case "$t_git" in
         *[!\ -~]*) ;;
         *) [ ${#t_git} -gt 18 ] && t_git="$(printf '%.17s' "$t_git")..." ;;
     esac
+    if [ -n "$t_git" ]; then
+        g_a=${g_ab%% *}; g_a=${g_a#+}; g_b=${g_ab##* }; g_b=${g_b#-}
+        [ "$g_dirty" = 1 ] && t_git="$t_git $(printf '\342\227\217')"                          # ● U+25CF
+        case "$g_a" in ''|0|*[!0-9]*) ;; *) t_git="$t_git $(printf '\342\206\221')$g_a" ;; esac  # ↑ U+2191
+        case "$g_b" in ''|0|*[!0-9]*) ;; *) t_git="$t_git $(printf '\342\206\223')$g_b" ;; esac  # ↓ U+2193
+    fi
 fi
 
 # ===== the rows =====

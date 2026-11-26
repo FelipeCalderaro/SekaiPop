@@ -18,11 +18,13 @@ SettingsPage {
     function flip(path) { HyprlandSettings.set(path, "bool", !HyprlandSettings.bool(path)) }
 
     // ===== keyboard layouts =====
-    // kb_layout is a comma list ("us,ru"); the first is the one you start on. The
-    // bar's layout key (and the key combo below) switch between them.
+    // kb_layout is a comma list ("br,us"); the first is the one you start on. The
+    // bar's layout key (and the key combo below) switch between them. kb_variant is a
+    // second list matched to it by position ("," + "intl" = br as it is, us International),
+    // so a layout here is "id" or "id:variant" (KeyboardLayoutService.join / split).
     readonly property var commonLayouts: KeyboardLayoutService.commonLayouts
-    readonly property var activeLayouts: HyprlandSettings.str("input.kb_layout", "us")
-        .split(",").map(c => c.trim()).filter(c => c.length > 0)
+    readonly property var activeLayouts: KeyboardLayoutService.join(
+        HyprlandSettings.str("input.kb_layout", "us"), HyprlandSettings.str("input.kb_variant"))
     // The common ones, then any other layout that is already on (so it can be turned off).
     readonly property var layoutChips: {
         const out = page.commonLayouts.slice()
@@ -48,11 +50,33 @@ SettingsPage {
     function setLayouts(list) {
         if (list.length === 0)
             return
-        // A variant list ("," + "phonetic") is matched to the layouts by position, so it
-        // would point at the wrong layout once the list changes.
+        const parts = KeyboardLayoutService.split(list)
+        // The variant list is matched to the layouts by position: clear it before the layout
+        // list changes (a stale one would point at the wrong layout, or past the end), then
+        // write the new one.
         if (HyprlandSettings.str("input.kb_variant") !== "")
             HyprlandSettings.set("input.kb_variant", "str", "")
-        HyprlandSettings.set("input.kb_layout", "str", list.join(","))
+        HyprlandSettings.set("input.kb_layout", "str", parts.layout)
+        if (parts.variant !== "")
+            HyprlandSettings.set("input.kb_variant", "str", parts.variant)
+    }
+
+    // The primary layout is the first in kb_layout: the one Hyprland starts on, and the one
+    // it reads every shortcut through (input:resolve_binds_by_sym is off), whichever layout
+    // you are typing in.
+    readonly property string primaryLayout: page.activeLayouts.length > 0 ? page.activeLayouts[0] : ""
+    readonly property var primaryOptions: page.activeLayouts.map(id => {
+        const known = page.commonLayouts.find(c => c.id === id)
+        return { id: id, label: known ? known.label : id.toUpperCase(), icon: id === page.primaryLayout ? "star" : "keyboard" }
+    })
+
+    function setPrimary(id) {
+        const list = page.activeLayouts.slice()
+        const i = list.indexOf(id)
+        if (i <= 0)
+            return
+        list.splice(i, 1)
+        page.setLayouts([id].concat(list))
     }
 
     function toggleLayout(id) {
@@ -75,12 +99,26 @@ SettingsPage {
         onTriggered: page.layoutDraft = ""
     }
 
+    // "pl", "us:intl" or "us(intl)", the way xkb and localectl write them.
     function addLayout(text) {
-        const id = text.trim().toLowerCase()
-        if (!/^[a-z0-9_-]{2,12}$/.test(id) || page.activeLayouts.indexOf(id) >= 0)
+        const m = text.trim().toLowerCase().match(/^([a-z0-9_-]{2,12})(?:[:(]([a-z0-9_-]{1,24})\)?)?$/)
+        if (!m)
+            return
+        const id = m[2] ? m[1] + ":" + m[2] : m[1]
+        if (page.activeLayouts.indexOf(id) >= 0)
             return
         page.setLayouts(page.activeLayouts.concat([id]))
     }
+
+    // kb_model: the physical keyboard. It decides the keys a layout can reach: ABNT2's extra
+    // /? key beside right Shift and its keypad dot, JIS's extra keys. "" = Hyprland's default
+    // (a 105-key ISO board, which has every key a US or European layout uses).
+    readonly property var keyboardModels: [
+        { id: "", label: "Standard", icon: "keyboard" },
+        { id: "abnt2", label: "Brazilian ABNT2", icon: "keyboard_alt" },
+        { id: "pc104", label: "US 104 (ANSI)", icon: "keyboard" },
+        { id: "jp106", label: "Japanese 106", icon: "keyboard_alt" }
+    ]
 
     function setSwitchKey(id) {
         const opts = HyprlandSettings.str("input.kb_options").split(",")
@@ -794,7 +832,7 @@ SettingsPage {
         Text {
             width: kbCard.innerWidth
             wrapMode: Text.WordWrap
-            text: "Pick every layout you type in. With two or more, a layout key appears on the bar: click it to switch. The first one you pick is the one you start on."
+            text: "Pick every layout you type in. With two or more, a layout key appears on the bar: click it to switch. Choose below which one is primary. Brazilian is ABNT2; set the keyboard model below to ABNT2 too, for the extra /? key."
             color: mt.pInkSub
             font.family: mt.fontFamily
             font.pixelSize: 16
@@ -816,9 +854,18 @@ SettingsPage {
             }
         }
 
+        SettingChoice {
+            visible: page.activeLayouts.length > 1
+            label: "Primary layout"
+            sublabel: "The one Hyprland starts on, and the one shortcuts follow in every layout"
+            current: page.primaryLayout
+            options: page.primaryOptions
+            onPicked: id => page.setPrimary(id)
+        }
+
         SettingText {
             label: "Another layout"
-            sublabel: "Its code, like pl or se"
+            sublabel: "Its code, like pl, or with a variant, like us:intl or de(nodeadkeys)"
             value: page.layoutDraft
             placeholder: "type a code, press Enter"
             clearable: false
@@ -835,6 +882,14 @@ SettingsPage {
             current: page.switchKey
             options: page.switchKeys
             onPicked: id => page.setSwitchKey(id)
+        }
+
+        SettingChoice {
+            label: "Keyboard model"
+            sublabel: "The physical keyboard: ABNT2 adds the /? key beside right Shift"
+            current: HyprlandSettings.str("input.kb_model")
+            options: page.keyboardModels
+            onPicked: id => HyprlandSettings.set("input.kb_model", "str", id)
         }
     }
 

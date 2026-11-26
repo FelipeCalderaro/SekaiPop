@@ -36,7 +36,7 @@ Singleton {
         "misc.focus_on_activate", "misc.enable_swallow", "misc.animate_manual_resizes",
         "misc.vrr", "misc.disable_hyprland_logo", "misc.mouse_move_enables_dpms", "misc.key_press_enables_dpms",
         "input.follow_mouse", "input.sensitivity", "input.repeat_rate", "input.repeat_delay",
-        "input.kb_layout", "input.kb_variant", "input.kb_options",
+        "input.kb_layout", "input.kb_variant", "input.kb_options", "input.kb_model",
         "input.numlock_by_default", "input.touchpad.natural_scroll", "input.touchpad.tap-to-click",
         "input.touchpad.disable_while_typing"
     ]

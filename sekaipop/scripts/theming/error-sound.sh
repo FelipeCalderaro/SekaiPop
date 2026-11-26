@@ -14,6 +14,14 @@
 # A __custom theme that isn't SekaiPop's (no X-SekaiPop line) is never touched: status says
 # "conflict" and set refuses (exit 4).
 #
+# The compositor's bell: a Wayland app (kitty, foot...) rings it through the xdg-system-bell
+# protocol, and Hyprland plays it itself, with libcanberra, as the event "bell-window-system" of
+# the default "freedesktop" theme: it never reads __custom. libcanberra merges a theme found in
+# ~/.local/share/sounds ahead of the system's, so a user-level "freedesktop" holding ONLY
+# stereo/bell-window-system (the choice, or .disabled for off) changes that bell and nothing
+# else: every other freedesktop sound still comes from /usr/share/sounds. Marked like __custom
+# (X-SekaiPop line); a freedesktop folder of your own is left alone.
+#
 # For the tests: SEKAIPOP_SOUNDS (the sounds folder), SEKAIPOP_SYSTEM_SOUNDS (where the built-in
 # ones are), SEKAIPOP_STATE (where the previous theme name is kept).
 
@@ -22,6 +30,7 @@ SOUNDS=${SEKAIPOP_SOUNDS:-$DATA/sounds}
 SYS=${SEKAIPOP_SYSTEM_SOUNDS:-/usr/share/sounds}
 STATE=${SEKAIPOP_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/sekaipop}
 THEME="$SOUNDS/__custom"
+FD="$SOUNDS/freedesktop"
 MARK="X-SekaiPop=true"
 have() { command -v "$1" >/dev/null 2>&1; }
 
@@ -42,6 +51,38 @@ builtin_file() {
 
 ours() { [ -f "$THEME/index.theme" ] && grep -qF "$MARK" "$THEME/index.theme"; }
 foreign() { [ -e "$THEME" ] && ! ours; }
+
+fd_ours() { [ -f "$FD/index.theme" ] && grep -qF "$MARK" "$FD/index.theme"; }
+
+# fd_write <choice> <file>: the compositor's bell (see the top).
+fd_write() {
+    if [ -e "$FD" ] && ! fd_ours; then
+        echo "error-sound: $FD is a sound theme of your own: the compositor's bell (kitty's, through Hyprland) keeps its sound" >&2
+        return 0
+    fi
+    mkdir -p "$FD/stereo" || return 1
+    {
+        echo "[Sound Theme]"
+        echo "Name=freedesktop"
+        echo "Comment=Written by SekaiPop (Settings > General > Sounds): only the window-system bell; every other sound comes from the system's freedesktop theme"
+        echo "Directories=stereo"
+        echo "$MARK"
+        echo
+        echo "[stereo]"
+        echo "OutputProfile=stereo"
+    } > "$FD/index.theme.tmp" && mv "$FD/index.theme.tmp" "$FD/index.theme" || return 1
+    rm -f "$FD/stereo/bell-window-system".*
+    if [ "$1" = off ]; then
+        : > "$FD/stereo/bell-window-system.disabled"
+    else
+        ext=$(printf '%s' "${2##*.}" | tr 'A-Z' 'a-z')
+        [ "$ext" = ogg ] && ext=oga
+        cp "$2" "$FD/stereo/bell-window-system.$ext.tmp" \
+            && mv "$FD/stereo/bell-window-system.$ext.tmp" "$FD/stereo/bell-window-system.$ext" || return 1
+    fi
+}
+
+fd_remove() { fd_ours && rm -rf "$FD"; return 0; }
 
 gtk_theme() { have gsettings && gsettings get org.gnome.desktop.sound theme-name 2>/dev/null | tr -d "'"; }
 
@@ -99,6 +140,7 @@ cmd_set() {
         [ "$ext" = ogg ] && ext=oga
         cp "$src" "$THEME/stereo/bell.$ext.tmp" && mv "$THEME/stereo/bell.$ext.tmp" "$THEME/stereo/bell.$ext" || return 1
     fi
+    fd_write "$choice" "$src" || return 1
     if have gsettings && [ "$(gtk_theme)" != __custom ]; then
         gsettings set org.gnome.desktop.sound theme-name __custom 2>/dev/null \
             || echo "error-sound: GTK apps keep their own sound theme (gsettings refused); kitty uses the new bell" >&2
@@ -112,6 +154,7 @@ cmd_revert() {
         return 0
     fi
     rm -rf "$THEME"
+    fd_remove
     before=$(cat "$STATE/sound-theme-before" 2>/dev/null)
     if have gsettings && [ "$(gtk_theme)" = __custom ]; then
         gsettings set org.gnome.desktop.sound theme-name "${before:-freedesktop}" 2>/dev/null
@@ -128,8 +171,10 @@ cmd_status() {
 
 cmd_play() {
     if [ -f "$THEME/stereo/bell.disabled" ]; then echo "error-sound: the bell is off" >&2; return 0; fi
+    # The way the compositor rings it (kitty and other Wayland apps go through Hyprland).
     if have canberra-gtk-play; then
-        canberra-gtk-play -i bell -d "SekaiPop" 2>/dev/null && return 0
+        canberra-gtk-play -i bell-window-system -d "SekaiPop" \
+            --property=canberra.xdg-theme.name=freedesktop 2>/dev/null && return 0
     fi
     f=$(ls "$THEME"/stereo/bell.* 2>/dev/null | head -n 1)
     [ -n "$f" ] || f=$(builtin_file soft 2>/dev/null) || f="$SYS/freedesktop/stereo/bell.oga"

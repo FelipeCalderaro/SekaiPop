@@ -41,3 +41,15 @@ until you remove it.
 - `sekaipop/services/SoundService.qml`, the card in `modules/sekai/settings/SettingsPageGeneral.qml`
 - `python3 -B sekaipop/tests/sound-test/error_sound_test.py`: every choice in a throwaway home with a
   stand-in gsettings, the way back, your own file, and a theme of yours left alone.
+
+
+## Kitty and other Wayland apps: the compositor's bell
+
+Kitty (and foot, and other Wayland apps) don't play their bell themselves when the compositor
+offers the Wayland system-bell protocol: they hand it to Hyprland, which plays it with libcanberra
+as `bell-window-system` from the default `freedesktop` theme, never reading `__custom`. So the
+setting also writes a user-level `~/.local/share/sounds/freedesktop/` holding only
+`stereo/bell-window-system.*` (the choice, or `.disabled` for Off). libcanberra merges it ahead of
+`/usr/share/sounds/freedesktop`, so that bell changes and every other sound stays the system's.
+*Default* removes it. A `freedesktop` folder of your own there is left alone. **Try it** plays the
+bell the way Hyprland does.

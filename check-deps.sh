@@ -285,6 +285,11 @@ any 2 "file chooser for avatar/banner/custom image" zenity pac zenity kdialog ya
 any 3 "terminal (kitty, foot, alacritty...)" kitty pac kitty foot alacritty wezterm gnome-terminal
 cmd 3 neofetch neofetch aur "terminal look: system info beside your banner (docs/TERMINAL.md)"
 font 3 "Maple Mono NF" maplemono-nf aur "terminal look's first-choice font; JetBrains Mono is used without it"
+if [ -f /usr/share/blesh/ble.sh ] || [ -f "${XDG_DATA_HOME:-$HOME/.local/share}/blesh/ble.sh" ]; then
+    record 3 "ble.sh (bash: history suggestions as you type)" 1 blesh-git aur
+else
+    record 3 "ble.sh (bash: history suggestions as you type)" 0 blesh-git aur "the Terminal prompt loads it when installed"
+fi
 
 # --------------------------------------------------------------------------
 section "Theming"

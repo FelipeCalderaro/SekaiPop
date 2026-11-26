@@ -138,7 +138,7 @@ case "$1" in
         # and the shell with it. Step back to the first layout before the list is
         # touched, and give the keymap a moment to settle.
         case "$path" in
-            input.kb_layout|input.kb_variant)
+            input.kb_layout|input.kb_variant|input.kb_model)
                 hyprctl switchxkblayout all 0 >/dev/null 2>&1
                 sleep 0.25
                 ;;
@@ -181,7 +181,10 @@ case "$1" in
                 query=input.touchpad.tap_to_click
             fi
             v=$(hyprctl getoption "$(printf '%s' "$query" | tr . :)" 2>/dev/null | sed -n '1s/^[^:]*: *//p' | cut -d' ' -f1)
-            [ -n "$v" ] && printf '%s=%s\n' "$path" "$v"
+            # An unset string option reads as "[[EMPTY]]": that is "", not a value (it ended
+            # up written back inside kb_options, ahead of the layout switch key).
+            if [ "$v" = "[[EMPTY]]" ]; then printf '%s=\n' "$path"
+            elif [ -n "$v" ]; then printf '%s=%s\n' "$path" "$v"; fi
         done
         ;;
     check)

@@ -22,12 +22,19 @@ const bar = read("modules/sekai/bar/Bar.qml");
 // ---- the code: two letters, upper case, and only with more than one layout ----
 const m = /readonly property string code: ([^\n]+\n[^\n]+)/.exec(service);
 ok(m, "KeyboardLayoutService.code is declared");
-const code = (layoutName, layoutCount) => new Function("root", "return " + m[1])({ layoutName, layoutCount });
-ok(code("English (US)", 2) === "EN", "English (US) shows EN");
-ok(code("Russian", 3) === "RU", "Russian shows RU");
-ok(code("English (US)", 1) === "", "one layout: nothing to show");
-ok(code("English (US)", 0) === "", "no layouts read yet: nothing to show");
-ok(code("", 2) === "", "no active keymap read yet: nothing to show");
+// codeFor, taken out of the service the same way
+const cf = /function codeFor\(id\) \{([\s\S]*?)\n    \}/.exec(service);
+ok(cf, "KeyboardLayoutService.codeFor is declared");
+const codeFor = new Function("id", cf[1]);
+const code = (layoutName, layoutCount, layoutIds, activeIndex) =>
+    new Function("root", "return " + m[1])({ layoutName, layoutCount, layoutIds: layoutIds || [], activeIndex: activeIndex || 0, codeFor });
+ok(code("English (US)", 2, ["us", "ru"], 0) === "EN", "English (US) shows EN");
+ok(code("Russian", 3, ["us", "de", "ru"], 2) === "RU", "Russian shows RU");
+ok(code("Portuguese (Brazil)", 2, ["br", "us"], 0) === "BR", "Brazilian ABNT2 shows BR, not PO");
+ok(code("English (US, intl., with dead keys)", 2, ["br", "us:intl"], 1) === "EN", "a variant keeps its layout's code");
+ok(code("English (US)", 1, ["us"], 0) === "", "one layout: nothing to show");
+ok(code("English (US)", 0, [], 0) === "", "no layouts read yet: nothing to show");
+ok(code("", 2, ["us", "ru"], 0) === "", "no active keymap read yet: nothing to show");
 
 // ---- the service keeps what the bar used to keep for itself ----
 ok(/^pragma Singleton/.test(service), "the service is a singleton");
@@ -66,6 +73,7 @@ ok(!/PopupWindow|Popup \{/.test(tag), "no popup window on the lock surface");
 ok(/\["hyprctl", "switchxkblayout", "all", String\(index\)\]/.test(service), "select() goes to a layout by index on every keyboard");
 ok(/root\.activeIndex = kb\.active_layout_index \|\| 0/.test(service), "the active place comes from active_layout_index");
 ok(/root\.layoutIds = ids/.test(service), "the codes come from kb_layout");
+ok(/root\.join\(kb\.layout, kb\.variant\)/.test(service), "variants are kept with their layout");
 const settingsPage = read("modules/sekai/settings/SettingsPageHyprland.qml");
 ok(/commonLayouts: KeyboardLayoutService\.commonLayouts/.test(settingsPage), "the Hyprland page and the list share one catalogue of layout names");
 const names = [...service.matchAll(/\{ id: "(\w+)", label: "([^"]+)" \}/g)];

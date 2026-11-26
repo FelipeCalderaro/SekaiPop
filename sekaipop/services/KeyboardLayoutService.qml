@@ -11,7 +11,7 @@ import Quickshell.Io
 //
 //   import qs.services
 //   ...
-//   text: KeyboardLayoutService.code      // "EN", or "" when there is nothing to switch between
+//   text: KeyboardLayoutService.code      // "EN", "BR", or "" when there is nothing to switch between
 //
 // Only worth showing when more than one layout is configured: on a one-layout system a
 // pill would permanently say "EN". So `code` is empty then, and every pill hides itself.
@@ -25,23 +25,64 @@ Singleton {
 
     // Which of them is on, as its place in the list ("us,ru": us is 0).
     property int activeIndex: 0
-    // kb_layout as the codes it lists, in order.
+    // kb_layout as the codes it lists, in order, each with its kb_variant when it has one
+    // ("br", "us:intl").
     property var layoutIds: []
 
     // The layouts people reach for, by their xkb code, in the order the Hyprland page lists
     // them. Names for the rows of a layout list; a code that is not here (a layout of your
     // own) is shown as the code. Not the keymap name Hyprland gives: it only names the
     // active one, so a row would change its writing as you pick.
+    // "id:variant" is a layout with a kb_variant (join / split below).
     readonly property var commonLayouts: [
-        { id: "us", label: "English (US)" }, { id: "gb", label: "English (UK)" },
-        { id: "ph", label: "Filipino" }, { id: "es", label: "Spanish" },
-        { id: "fr", label: "French" }, { id: "de", label: "German" },
-        { id: "it", label: "Italian" }, { id: "pt", label: "Portuguese" },
-        { id: "br", label: "Brazilian" }, { id: "ru", label: "Russian" },
-        { id: "ua", label: "Ukrainian" }, { id: "tr", label: "Turkish" },
+        { id: "us", label: "English (US)" }, { id: "us:intl", label: "English (US, intl.)" },
+        { id: "gb", label: "English (UK)" }, { id: "br", label: "Portuguese (Brazil, ABNT2)" },
+        { id: "pt", label: "Portuguese" }, { id: "es", label: "Spanish" },
+        { id: "latam", label: "Spanish (Latin America)" }, { id: "fr", label: "French" },
+        { id: "ca", label: "French (Canada)" }, { id: "de", label: "German" },
+        { id: "ch", label: "Swiss" }, { id: "it", label: "Italian" },
+        { id: "nl", label: "Dutch" }, { id: "be", label: "Belgian" },
+        { id: "se", label: "Swedish" }, { id: "no", label: "Norwegian" },
+        { id: "dk", label: "Danish" }, { id: "fi", label: "Finnish" },
+        { id: "pl", label: "Polish" }, { id: "cz", label: "Czech" },
+        { id: "hu", label: "Hungarian" }, { id: "ro", label: "Romanian" },
+        { id: "gr", label: "Greek" }, { id: "tr", label: "Turkish" },
+        { id: "ru", label: "Russian" }, { id: "ua", label: "Ukrainian" },
+        { id: "il", label: "Hebrew" }, { id: "ara", label: "Arabic" },
+        { id: "in", label: "Hindi" }, { id: "th", label: "Thai" },
+        { id: "vn", label: "Vietnamese" }, { id: "ph", label: "Filipino" },
         { id: "jp", label: "Japanese" }, { id: "kr", label: "Korean" },
-        { id: "ara", label: "Arabic" }
+        { id: "us:dvorak", label: "Dvorak" }, { id: "us:colemak", label: "Colemak" }
     ]
+
+    // kb_layout + kb_variant (two comma lists, matched by position) -> ["br", "us:intl"].
+    function join(layout, variant) {
+        const ids = String(layout || "").split(",").map(s => s.trim())
+        const vars = String(variant || "").split(",").map(s => s.trim())
+        const out = []
+        for (let i = 0; i < ids.length; i++) {
+            if (ids[i].length === 0)
+                continue
+            out.push(vars[i] ? ids[i] + ":" + vars[i] : ids[i])
+        }
+        return out
+    }
+
+    // ["br", "us:intl"] -> { layout: "br,us", variant: ",intl" } ("" when no layout has one).
+    function split(list) {
+        const ids = list.map(t => String(t).split(":")[0])
+        const vars = list.map(t => String(t).split(":")[1] || "")
+        return { layout: ids.join(","), variant: vars.some(v => v !== "") ? vars.join(",") : "" }
+    }
+
+    // What the bar and the lockscreen say for a layout: EN for the English ones, else the
+    // xkb code (BR, DE, RU, UA, JP). The keymap's name read wrongly for many ("Portuguese"
+    // gave PO, "German" GE, "Ukrainian" UK).
+    function codeFor(id) {
+        const base = String(id || "").split(":")[0]
+        if (base === "" ) return ""
+        return ["us", "gb", "au", "ie", "nz"].indexOf(base) >= 0 ? "EN" : base.slice(0, 3).toUpperCase()
+    }
 
     // What a list of layouts shows: [{ index, id, label }].
     readonly property var layouts: root.layoutIds.map((id, i) => {
@@ -54,7 +95,7 @@ Singleton {
     })
 
     readonly property string code: root.layoutCount > 1 && root.layoutName !== ""
-        ? root.layoutName.slice(0, 2).toUpperCase() : ""
+        ? root.codeFor(root.layoutIds[root.activeIndex]) : ""
 
     // `hyprctl switchxkblayout` is its own hyprctl command, not a dispatcher, so it is the
     // same on a Lua-mode and a hyprlang config. "all" moves every keyboard together, so the
@@ -103,7 +144,7 @@ Singleton {
                     const kb = (parsed.keyboards || []).find(k => k.main === true) || (parsed.keyboards || [])[0]
                     if (kb) {
                         root.layoutName = kb.active_keymap || ""
-                        const ids = (kb.layout || "").split(",").map(s => s.trim()).filter(s => s.length > 0)
+                        const ids = root.join(kb.layout, kb.variant)
                         root.layoutIds = ids
                         root.layoutCount = ids.length
                         root.activeIndex = kb.active_layout_index || 0

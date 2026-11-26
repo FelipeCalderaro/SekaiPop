@@ -105,7 +105,7 @@ function layerMap(binds, rowList, mods) {
         for (var j = 0; j < r.combos.length; j++) {
             var c = r.combos[j]
             if ((c.mods & ~KB.IGNORED) !== m || c.key === "") continue
-            out[lower(c.key)] = { kind: "action", id: r.id, name: r.name, group: r.group,
+            out[lower(KB.posName(c.key))] = { kind: "action", id: r.id, name: r.name, group: r.group,
                                   short: SHORT[r.id] !== undefined ? SHORT[r.id] : shortOf(r.name) }
         }
     }
@@ -115,7 +115,7 @@ function layerMap(binds, rowList, mods) {
         if (b.submap) continue
         var cc = KB.comboOf(b)
         if (cc.key === "" || KB.isHardware(cc) || cc.mods !== m) continue
-        var key = lower(cc.key)
+        var key = lower(KB.posName(cc.key))
         if (out[key] !== undefined) continue
         var name = KB.sentence(b.description)
         if (name === "") name = b.has_description ? String(b.description)

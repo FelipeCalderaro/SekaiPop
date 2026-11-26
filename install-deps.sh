@@ -155,7 +155,7 @@ FEATURES=(
   "matugen|matugen-bin" cava easyeffects
   grim slurp cliphist wtype hyprpicker hyprsunset
   imagemagick tesseract tesseract-data-eng swappy wf-recorder ffmpeg
-  brightnessctl ddcutil zenity kitty neofetch
+  brightnessctl ddcutil zenity kitty neofetch blesh-git
   plasma-nm kde-cli-tools blueman
   dconf glib2 adw-gtk-theme xorg-xrdb
   libcanberra sound-theme-freedesktop pacman-contrib

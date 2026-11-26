@@ -82,8 +82,8 @@ Variants {
         // (services/BarPositionService.qml), at the bar's scaled
         // thickness (Bar.qml).
         readonly property real uiScale: ShellScale.forScreen(win.screen)
-        readonly property string barPosition: BarPositionService.position
-        readonly property real barOffset: Math.round((BarPositionService.thickness + root.gap) * win.uiScale)
+        readonly property string barPosition: BarPositionService.positionFor((win.screen ? win.screen.name : ""))
+        readonly property real barOffset: Math.round((BarPositionService.thicknessOn((win.screen ? win.screen.name : "")) + root.gap) * win.uiScale)
 
         anchors {
             top: win.barPosition === "top"

@@ -152,6 +152,10 @@ Singleton {
         // ===== Bar and tray =====
         "bar.workspaceCount": 5,        // how many workspace badges the bar shows, 1-10
         "bar.scrollHints": true,        // a small marker on modules that react to the scroll wheel
+        // JSON: what each monitor's bar does differently, by output name (BarPositionService
+        // screenPrefs): { "HDMI-A-2": { "hidden": true, "position": "left", "wrap": "off" } }.
+        // A monitor not named follows the shell-wide bar.
+        "bar.screens": "{}",
         "tray.scroll": true,            // the wheel over a tray icon is sent to the app
         // ===== Weather =====
         "weather.location": "",         // "" = a guess from your IP; else a city name ("Paris", "Springfield, Illinois") or lat,lon

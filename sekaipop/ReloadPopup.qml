@@ -167,8 +167,8 @@ Scope {
             // bottom-right corner instead, above the bar (the bar's
             // edge: services/BarPositionService.qml). A left bar leaves
             // the top-right corner alone.
-            readonly property string barPosition: BarPositionService.position
-            readonly property real barOffset: Math.round((BarPositionService.thickness + root.gap) * win.uiScale)
+            readonly property string barPosition: BarPositionService.positionFor((win.screen ? win.screen.name : ""))
+            readonly property real barOffset: Math.round((BarPositionService.thicknessOn((win.screen ? win.screen.name : "")) + root.gap) * win.uiScale)
             readonly property real edgeGap: Math.round(16 * win.uiScale)
             anchors {
                 top: win.barPosition !== "bottom"

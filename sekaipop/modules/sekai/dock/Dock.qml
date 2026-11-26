@@ -1518,8 +1518,8 @@ PanelWindow {
     // same edge (services/BarPositionService.qml) a pinned dock is already placed
     // past the bar's reserved space by the compositor, so its margin is only the 14;
     // an unpinned one ignores reserved space, so it's moved off the bar by hand.
-    readonly property real lift: Math.round((14 + (BarPositionService.position === dockWindow.position
-        ? BarPositionService.thickness : 0)) * dockWindow.uiScale)
+    readonly property real lift: Math.round((14 + (BarPositionService.positionFor((dockWindow.screen ? dockWindow.screen.name : "")) === dockWindow.position
+        ? BarPositionService.thicknessOn((dockWindow.screen ? dockWindow.screen.name : "")) : 0)) * dockWindow.uiScale)
     // (A hide mode: the window sits `innerGap` closer to the edge, the pill keeps its 14 inside.)
     readonly property real edgeMargin: dockWindow.dockPinned
         ? Math.round(14 * dockWindow.uiScale)
@@ -1597,10 +1597,10 @@ PanelWindow {
     readonly property real originX: dockWindow.position === "left"
         ? dockWindow.lift - Math.round(dockWindow.innerGap * dockWindow.uiScale) : 0
     readonly property real originY: dockWindow.position === "top"
-        ? dockWindow.edgeMargin + (dockWindow.dockPinned && BarPositionService.position === "top"
-            ? Math.round(BarPositionService.reserved * dockWindow.uiScale) : 0)
-        : (dockWindow.vertical && dockWindow.dockPinned && BarPositionService.position === "top"
-            ? Math.round(BarPositionService.reserved * dockWindow.uiScale) : 0)
+        ? dockWindow.edgeMargin + (dockWindow.dockPinned && BarPositionService.positionFor((dockWindow.screen ? dockWindow.screen.name : "")) === "top"
+            ? Math.round(BarPositionService.reservedOn((dockWindow.screen ? dockWindow.screen.name : "")) * dockWindow.uiScale) : 0)
+        : (dockWindow.vertical && dockWindow.dockPinned && BarPositionService.positionFor((dockWindow.screen ? dockWindow.screen.name : "")) === "top"
+            ? Math.round(BarPositionService.reservedOn((dockWindow.screen ? dockWindow.screen.name : "")) * dockWindow.uiScale) : 0)
 
     // Tell the screen-region picker (RegionSelector.qml) where the dock is, so its
     // toolbar can sit above it. 0 while the dock is hidden, tucked away or being

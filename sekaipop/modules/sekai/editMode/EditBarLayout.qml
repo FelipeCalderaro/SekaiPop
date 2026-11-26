@@ -162,10 +162,17 @@ Item {
             sumWeight += root.weight(z)
         }
         const mine = root.laneMin(zone, root.compact)
+        // Too narrow even for the icon-only keycaps (a portrait monitor): every lane keeps its
+        // minimum and the lanes scroll sideways (laneView) instead of being squeezed below it,
+        // which made them overlap and their keycaps spill out under the shelf.
         if (sumMin >= avail)
-            return Math.max(60, avail * mine / sumMin)
+            return mine
         return mine + (avail - sumMin) * root.weight(zone) / sumWeight
     }
+
+    // The lanes are wider than their room: they scroll sideways (wheel, or holding a keycap
+    // near either end while dragging).
+    readonly property bool lanesScroll: laneRow.width > root.lanesW + 1
 
     // ===== the name of an icon-only keycap =====
     property string tipId: ""
@@ -235,7 +242,7 @@ Item {
             const l = lanes.itemAt(i)
             if (!l)
                 continue
-            const lx = laneRow.x + l.x
+            const lx = l.mapToItem(root, 0, 0).x
             const d = px < lx ? lx - px : (px > lx + l.width ? px - (lx + l.width) : 0)
             if (d < bestDist) {
                 bestDist = d
@@ -271,7 +278,7 @@ Item {
         const ids = root.idsIn(zone)
 
         let before = 0
-        let mx = laneRow.x + lane.x + 14
+        let mx = lane.mapToItem(root, 14, 0).x
         let my = 34
         for (let i = 0; i < ids.length; i++) {
             if (ids[i] === root.dragId)
@@ -438,9 +445,45 @@ Item {
     }
 
     // ===== the lanes =====
+    // Holding a keycap near either end of a scrolling lane area scrolls it, so a keycap can be
+    // dragged to a lane that is out of view.
+    Timer {
+        interval: 16
+        repeat: true
+        running: root.dragId !== "" && root.lanesScroll
+        onTriggered: {
+            const local = root.dragX - laneView.x
+            const edge = 48
+            const v = local < edge ? -(edge - local) / 3 : (local > laneView.width - edge ? (local - laneView.width + edge) / 3 : 0)
+            if (v === 0)
+                return
+            laneView.contentX = Math.max(0, Math.min(laneView.contentWidth - laneView.width, laneView.contentX + v))
+            // The lanes moved under a still pointer: where it would land changed too.
+            root.track(root.dragX, root.dragY)
+        }
+    }
+
+    WheelScroll {
+        scroller: laneView
+        orientation: Qt.Horizontal
+        enabled: root.lanesScroll
+    }
+
+    Flickable {
+        id: laneView
+        x: root.ctlW + root.ctlGap
+        width: root.lanesW
+        height: root.height
+        contentWidth: laneRow.width
+        contentHeight: height
+        clip: root.lanesScroll
+        // Dragging inside belongs to the keycaps; this scrolls by the wheel and by the drag timer.
+        interactive: false
+        boundsBehavior: Flickable.StopAtBounds
+        onContentWidthChanged: if (contentX > Math.max(0, contentWidth - width)) contentX = Math.max(0, contentWidth - width)
+
     Row {
         id: laneRow
-        x: root.ctlW + root.ctlGap
         spacing: root.laneGap
 
         Repeater {
@@ -524,19 +567,36 @@ Item {
             }
         }
     }
+    } // laneView
+
+    // Where the lanes are scrolled to: a thin thumb under them, only while they scroll.
+    Rectangle {
+        visible: root.lanesScroll
+        x: laneView.x + (laneView.width - width) * (laneView.contentX / Math.max(1, laneView.contentWidth - laneView.width))
+        y: root.height + 3
+        width: Math.max(36, laneView.width * laneView.width / Math.max(1, laneView.contentWidth))
+        height: 4
+        radius: 2
+        color: mt.pLine
+        opacity: 0.6
+    }
 
     // ===== RESET and CLEAR ALL =====
+    // Over the last lane's top-right corner; when the lanes are narrow (icon-only keycaps, or
+    // scrolling) that corner is another lane's title, so the two keys shrink to their icons and
+    // sit at the end of the STYLE heading instead.
+    readonly property bool keysTucked: root.compact || root.lanesScroll
     Row {
         id: keyRow
         layoutDirection: Qt.RightToLeft
-        spacing: 8
-        x: root.width - keyRow.width - 12
-        y: 6
+        spacing: root.keysTucked ? 6 : 8
+        x: root.keysTucked ? root.ctlW - keyRow.width - 6 : root.width - keyRow.width - 12
+        y: root.keysTucked ? 0 : 6
 
         Item {
             id: resetKey
             visible: (BarLayoutService.customizedFor(root.screenName) || root.idsIn("off").some(id => BarLayoutService.onByDefault(id))) && root.dragId === ""
-            width: 78
+            width: root.keysTucked ? 30 : 78
             height: 26
 
             Pill {
@@ -560,6 +620,7 @@ Item {
                     }
 
                     Text {
+                        visible: !root.keysTucked
                         anchors.verticalCenter: parent.verticalCenter
                         text: "RESET"
                         color: mt.pInk
@@ -585,7 +646,7 @@ Item {
         Item {
             id: clearKey
             visible: root.dragId === "" && root.zoneNames.some(z => root.idsIn(z).length > 0)
-            width: 92
+            width: root.keysTucked ? 30 : 92
             height: 26
 
             Pill {
@@ -609,6 +670,7 @@ Item {
                     }
 
                     Text {
+                        visible: !root.keysTucked
                         anchors.verticalCenter: parent.verticalCenter
                         text: "CLEAR ALL"
                         color: mt.pInk

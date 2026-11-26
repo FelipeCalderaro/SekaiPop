@@ -4,11 +4,15 @@
 # What it does:
 #   1. dependencies   packages, fonts, services, groups     (runs install-deps.sh)
 #   2. the rice       copied to ~/.config/quickshell/sekaipop
+#      and plugins    every plugin in ./plugins copied (or linked) into ~/.config/sekaipop/plugins
 #   3. Hyprland       a ready configuration in ~/.config/hypr (keybinds, rules, autostart),
 #                     so after a re-login the shell simply starts. monitors.lua is not shipped:
 #                     your own is kept, otherwise one is made for the screens connected now.
 # Your old Hyprland config is never deleted: it is moved to ~/.config/hypr.sekaipop-backup-<time>
-# and  ./install.sh --restore  puts it back.
+# and  ./install.sh --restore  puts it back. Reinstalling keeps your own edits: changes you made to
+# the shipped files are merged into the new ones (or, if they clash, your file is kept and the new
+# one is put beside it as <file>.sekaipop-new), and files you added are kept. A plugin folder that is replaced is moved to
+# ~/.config/sekaipop/plugins.sekaipop-backup-<time>/<id> first; other plugins are never touched.
 #
 # Usage:  ./install.sh [options] [-- options for install-deps.sh]
 #   --dry-run           show what would happen, change nothing
@@ -20,6 +24,9 @@
 #   --kitty MODE        keep   = keep the current Kitty theme choice
 #                       enable = opt in to SekaiPop's Kitty colours after validation
 #   --restore-kitty     remove only SekaiPop's Kitty colour integration and exit
+#   --plugins MODE      copy  = copy the bundled plugins (./plugins) into the plugins folder (default)
+#                       link  = link them to this checkout instead (for a checkout you keep and edit)
+#                       skip  = leave the plugins folder alone
 #   --no-deps           do not install packages / services (only copy files)
 #   --with-tests        also copy the developer tests folder
 #   --restore           put back the Hyprland config that was backed up by the last run
@@ -30,19 +37,20 @@
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 
-REPLACED=0; DRY=0; YES=0; RICE=""; HYPR=auto; KITTY=auto; NODEPS=0; WITH_TESTS=0; RESTORE=0; RESTORE_KITTY=0; DEPS_ARGS=()
+REPLACED=0; DRY=0; YES=0; RICE=""; HYPR=auto; PLUGINS=copy; KITTY=auto; NODEPS=0; WITH_TESTS=0; RESTORE=0; RESTORE_KITTY=0; DEPS_ARGS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run) DRY=1 ;;
         --yes|-y) YES=1 ;;
         --rice) shift; RICE=${1:-} ;;
         --hypr) shift; HYPR=${1:-}; case "$HYPR" in full|merge|skip) ;; *) echo "--hypr needs full|merge|skip" >&2; exit 2 ;; esac ;;
+        --plugins) shift; PLUGINS=${1:-}; case "$PLUGINS" in copy|link|skip) ;; *) echo "--plugins needs copy|link|skip" >&2; exit 2 ;; esac ;;
         --kitty) shift; KITTY=${1:-}; case "$KITTY" in keep|enable) ;; *) echo "--kitty needs keep|enable" >&2; exit 2 ;; esac ;;
         --restore-kitty) RESTORE_KITTY=1 ;;
         --no-deps) NODEPS=1 ;;
         --with-tests) WITH_TESTS=1 ;;
         --restore) RESTORE=1 ;;
-        -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
         --) shift; DEPS_ARGS=("$@"); break ;;
         *) echo "unknown option: $1 (try --help)" >&2; exit 2 ;;
     esac
@@ -221,6 +229,10 @@ else
     step "1. Dependencies"; info "skipped (--no-deps)"
 fi
 
+# The commit the installed copy came from (written by the last install), before it is replaced:
+# step 3 asks git for the Hyprland files that commit shipped, to tell your edits from updates.
+OLD_COMMIT=$(sed -n 's/^commit=//p' "$QS_DEST/.source" 2>/dev/null | head -1)
+
 # ------------------------------------------------------------------ 2. the rice
 step "2. The rice -> $QS_DEST"
 if [ -d "$QS_DEST" ] && [ "$(realpath "$QS_DEST")" = "$RICE" ]; then
@@ -259,6 +271,62 @@ if [ -n "$QTV" ] && ! ver_ge "$QTV" 6.12; then
     fi
 elif [ -n "$QTV" ]; then
     ok "Qt $QTV: the shipped shaders work as they are"
+fi
+
+# ------------------------------------------------------------------ 2b. bundled plugins
+# Every folder with a plugin.json in ./plugins (next to the rice) goes into the plugins folder, as a
+# copy or, with --plugins link, as a link to this checkout (get.sh downloads into a temporary folder,
+# so a link is only right for a checkout you keep). Only those ids are touched: any other plugin, and
+# one installed from Settings > Get plugins (a link into the shell's own repository store, which the
+# shell updates itself), is left exactly as it is. A folder that is replaced is moved to
+# plugins.sekaipop-backup-<time>/ first, never deleted. A plugin's bar entry stays off until turned on.
+PLUG_SRC="$(dirname "$RICE")/plugins"
+PLUG_DEST="${SEKAIPOP_PLUGINS_DIR:-$CFG/sekaipop/plugins}"
+PLUG_STORE="${XDG_DATA_HOME:-$HOME/.local/share}/sekaipop/plugin-repos"
+PLUG_BACKUP="$CFG/sekaipop/plugins.sekaipop-backup-$TS"
+PLUG_CHANGED=0
+step "2b. Plugins -> $PLUG_DEST"
+if [ "$PLUGINS" = skip ]; then
+    info "skipped (--plugins skip)"
+elif [ ! -d "$PLUG_SRC" ]; then
+    info "no bundled plugins next to the rice"
+else
+    for src in "$PLUG_SRC"/*/; do
+        src=${src%/}
+        [ -f "$src/plugin.json" ] || continue
+        id=$(basename "$src")
+        dest="$PLUG_DEST/$id"
+        # The folder name is the plugin's id (lower case, digits, dashes): the shell skips anything else.
+        case "$id" in ''|*[!a-z0-9-]*|-*) warn "$id: not a valid plugin id, left out"; continue ;; esac
+        target=""; [ -L "$dest" ] && target=$(readlink -f "$dest")
+        if [ -n "$target" ] && case "$target" in "$PLUG_STORE"/*) true ;; *) false ;; esac; then
+            warn "$id: installed from Settings > Get plugins, left as it is (remove it there to use the bundled one)"
+            continue
+        fi
+        if [ "$PLUGINS" = link ] && [ "$target" = "$(readlink -f "$src")" ]; then
+            ok "$id: already linked"; continue
+        fi
+        if [ "$PLUGINS" = copy ] && [ -d "$dest" ] && [ ! -L "$dest" ] \
+            && diff -rq --exclude=tests --exclude=.git "$src" "$dest" >/dev/null 2>&1; then
+            ok "$id: already up to date"; continue
+        fi
+        if [ -e "$dest" ] || [ -L "$dest" ]; then
+            run mkdir -p "$PLUG_BACKUP" && run mv "$dest" "$PLUG_BACKUP/$id" \
+                || { fail "$id: could not back up $dest, left as it is"; continue; }
+            info "$id: the one there is kept in $PLUG_BACKUP/$id"
+        fi
+        run mkdir -p "$PLUG_DEST" || { fail "could not make $PLUG_DEST"; break; }
+        if [ "$PLUGINS" = link ]; then
+            run ln -s "$src" "$dest" && ok "$id: linked to $src" || { fail "$id: could not link it"; continue; }
+        else
+            run cp -a "$src" "$dest" || { fail "$id: could not copy it"; continue; }
+            run rm -rf "$dest/.git"
+            [ "$WITH_TESTS" = 1 ] || run rm -rf "$dest/tests"
+            ok "$id: copied"
+        fi
+        PLUG_CHANGED=1
+    done
+    [ "$PLUG_CHANGED" = 1 ] && info "a plugin's bar entry stays off until you turn it on: Settings > Bar > Modules"
 fi
 
 # ------------------------------------------------------------------ optional Kitty colours
@@ -353,6 +421,65 @@ gen_monitors_lua() { # gen_monitors_lua <file>
     } > "$out"
 }
 
+# keep_your_edits <old config> <new config being built>
+# The new config starts as the shipped files. For each one you had too, compared with what was
+# shipped LAST time (the base: .sekaipop-shipped/ kept by the last install, else that commit's
+# files from git):
+#   you didn't change it                  the new one
+#   you changed it, the update didn't     yours
+#   both changed it                       merged (diff3); if the two clash: yours, and the new one
+#                                         beside it as <file>.sekaipop-new
+#   no base to compare with               the new one, yours beside it as <file>.sekaipop-yours
+# Whitespace-only edits (an editor reformatting a file) count as not changed. A file you added (not
+# shipped then or now) is kept; one the update removed is dropped unless you had changed it.
+# monitors.lua, workspaces.lua, sekaipop_overrides.lua and custom/ are copied whole before this.
+keep_your_edits() {
+    local old=$1 new=$2 base f rel kept=() merged=() clashed=() unsure=() added=() dropped=()
+    base=$(mktemp -d) || return 0
+    if [ -d "$old/.sekaipop-shipped" ]; then
+        cp -a "$old/.sekaipop-shipped/." "$base/"
+    elif [ -n "${OLD_COMMIT:-}" ] && have git && git -C "$HERE" cat-file -e "$OLD_COMMIT:hypr" 2>/dev/null; then
+        git -C "$HERE" archive "$OLD_COMMIT" hypr 2>/dev/null | tar -x -C "$base" --strip-components=1 2>/dev/null
+    fi
+    local have_base=0; [ -n "$(ls -A "$base" 2>/dev/null)" ] && have_base=1
+    same() { [ -f "$1" ] && [ -f "$2" ] && diff -q -w -B "$1" "$2" >/dev/null 2>&1; }
+    while IFS= read -r -d '' f; do
+        rel=${f#"$old"/}
+        case "$rel" in
+            monitors.lua|workspaces.lua|sekaipop_overrides.lua|custom/*|.sekaipop-shipped/*|*.sekaipop-new|*.sekaipop-yours) continue ;;
+        esac
+        if [ -f "$new/$rel" ]; then
+            same "$f" "$new/$rel" && continue                       # already the same
+            if [ "$have_base" = 1 ] && [ -f "$base/$rel" ]; then
+                same "$f" "$base/$rel" && continue                  # you didn't change it: the update
+                if same "$base/$rel" "$new/$rel"; then              # only you changed it: yours
+                    cp -a "$f" "$new/$rel"; kept+=("$rel")
+                elif diff3 -m "$f" "$base/$rel" "$new/$rel" > "$new/$rel.merge" 2>/dev/null; then
+                    mv "$new/$rel.merge" "$new/$rel"; merged+=("$rel")
+                else
+                    rm -f "$new/$rel.merge"
+                    mv "$new/$rel" "$new/$rel.sekaipop-new"; cp -a "$f" "$new/$rel"; clashed+=("$rel")
+                fi
+            else
+                cp -a "$f" "$new/$rel.sekaipop-yours"; unsure+=("$rel")
+            fi
+        elif [ "$have_base" = 1 ] && [ -f "$base/$rel" ]; then
+            same "$f" "$base/$rel" || { mkdir -p "$(dirname "$new/$rel")"; cp -a "$f" "$new/$rel.sekaipop-yours"; dropped+=("$rel"); }
+        else
+            mkdir -p "$(dirname "$new/$rel")"; cp -a "$f" "$new/$rel"; added+=("$rel")
+        fi
+    done < <(find "$old" -type f -print0)
+    rm -rf "$base"
+    for rel in "${kept[@]}"; do ok "kept your edits to $rel"; done
+    for rel in "${merged[@]}"; do ok "kept your edits to $rel (merged with the update)"; done
+    for rel in "${added[@]}"; do ok "kept your file $rel"; done
+    for rel in "${clashed[@]}"; do warn "kept YOUR $rel: the update changed the same lines, its version is $rel.sekaipop-new"; done
+    for rel in "${unsure[@]}"; do warn "$rel: installed the new one; yours is beside it as $rel.sekaipop-yours"; done
+    for rel in "${dropped[@]}"; do warn "$rel: the update removed it; your edited copy is kept as $rel.sekaipop-yours"; done
+    [ "${#clashed[@]}" -gt 0 ] || [ "${#unsure[@]}" -gt 0 ] || [ "${#dropped[@]}" -gt 0 ] && info "tip: changes in $HYPR_DEST/custom/ never need merging"
+    return 0
+}
+
 # ------------------------------------------------------------------ 3. Hyprland
 step "3. Hyprland"
 # Your own config is saved under a time-stamped name (and kept for good: --restore uses it).
@@ -374,6 +501,7 @@ case "$HYPR" in
         info "would build the new config from $SRC_HYPR"
         [ -e "$HYPR_DEST" ] && info "would move $HYPR_DEST to $BACKUP_TO"
         info "would keep your monitors.lua, workspaces.lua, sekaipop_overrides.lua and custom/ folder"
+        info "would keep your own edits to the shipped files, and files you added"
         [ -f "$HYPR_DEST/monitors.lua" ] || info "would make a monitors.lua for the screens connected to this machine"
     else
         mkdir -p "$CFG"
@@ -384,6 +512,9 @@ case "$HYPR" in
                 [ -f "$HYPR_DEST/$f" ] && cp -a "$HYPR_DEST/$f" "$NEW/$f"
             done
             if [ -d "$HYPR_DEST/custom" ]; then mkdir -p "$NEW/custom"; cp -a "$HYPR_DEST/custom/." "$NEW/custom/"; fi
+            [ -d "$HYPR_DEST" ] && keep_your_edits "$HYPR_DEST" "$NEW"
+            # What was shipped this time, so the next install can tell your edits from updates.
+            rm -rf "$NEW/.sekaipop-shipped"; mkdir -p "$NEW/.sekaipop-shipped" && cp -a "$SRC_HYPR/." "$NEW/.sekaipop-shipped/"
             if [ ! -f "$NEW/monitors.lua" ]; then
                 if gen_monitors_lua "$NEW/monitors.lua"; then
                     ok "monitors.lua made for the screens connected now: $(grep -o 'output = "[^"]*"' "$NEW/monitors.lua" | cut -d'"' -f2 | paste -sd' ' -)"
@@ -457,6 +588,10 @@ elif [ "$DRY" = 0 ] && [ "$HYPR" = skip ] && [ "$REPLACED" = 1 ]; then
 elif [ "$DRY" = 0 ] && [ "$HYPR" != skip ] && [ "$REPLACED" = 1 ] && shell_running; then
     printf '\n'
     ask "The shell is running on the old files. Restart it now?" && restart_shell
+fi
+# The rice unchanged but plugins added or replaced: a running shell reads its plugins folder again.
+if [ "$DRY" = 0 ] && [ "$PLUG_CHANGED" = 1 ] && [ "$REPLACED" = 0 ] && shell_running; then
+    qs -c sekaipop ipc call plugins reload >/dev/null 2>&1 && ok "the running shell read its plugins again"
 fi
 if [ "${#FAILED[@]}" -eq 0 ]; then
     [ "$DRY" = 1 ] && result ok "Dry run finished, nothing was changed" || result ok "SekaiPop is installed"

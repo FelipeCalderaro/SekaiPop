@@ -65,8 +65,18 @@ PanelWindow {
     readonly property real thickness: BarPositionService.thicknessFor(win.barPosition)
     // (The Capsule style is a slimmer bar: it reserves Theme.capStrip, or Theme.capStripV on
     // a standing bar, whatever the edge's usual thickness is.)
-    readonly property real stripSize: Math.round((win.barStyle === 3 ? (win.vertical ? mt.capStripV : mt.capStrip)
-    : win.thickness) * win.uiScale)
+    // A wrapped flat bar (Status_Bar `rows`, a narrow monitor) is `extraThickness` thicker.
+    readonly property real stripSize: Math.round(((win.barStyle === 3 ? (win.vertical ? mt.capStripV : mt.capStrip)
+    : win.thickness) + win.extraThickness) * win.uiScale)
+
+    // ===== per monitor (Settings -> Bar -> This monitor, BarPositionService screenPrefs) =====
+    readonly property string screenName: win.screen ? win.screen.name : ""
+    readonly property bool wrapAllowed: BarPositionService.wrapFor(win.screenName) === "auto"
+    // Design pixels the extra rows add (0 for a standing bar: it never wraps).
+    readonly property real extraThickness: win.vertical ? 0 : statusBar.extraThickness
+    // So popups, the OSD and the dock on this monitor keep clear of the taller bar.
+    onExtraThicknessChanged: BarPositionService.reportExtra(win.screenName, win.barPosition, win.extraThickness)
+    Component.onDestruction: BarPositionService.reportExtra(win.screenName, win.barPosition, 0)
 
     // ===== Edit Desktop =====
     readonly property bool editing: win.screen !== null && EditMode.editing(win.screen.name)
@@ -990,7 +1000,8 @@ PanelWindow {
                 ? geometry.sideInset
                 : (win.barPosition === "bottom" ? parent.height - height - edgeGap + slideBy : edgeGap - slideBy)
                 width: win.vertical ? (win.barStyle === 3 ? mt.capVBarFace : mt.barVBody) : parent.width - 2 * geometry.sideInset
-                height: win.vertical ? parent.height - 2 * geometry.sideInset : (win.barStyle === 3 ? mt.capBarHeight : 61)
+                height: win.vertical ? parent.height - 2 * geometry.sideInset : (win.barStyle === 3 ? mt.capBarHeight : 61) + win.extraThickness
+                wrapAllowed: win.wrapAllowed
                 barStyle: win.barStyle
 
                 activeWorkspace: win.activeWorkspace

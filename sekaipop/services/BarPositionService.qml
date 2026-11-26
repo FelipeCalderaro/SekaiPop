@@ -46,6 +46,109 @@ Singleton {
     // pinned layers out of): none while it auto-hides.
     readonly property int reserved: SettingsService.get("bar.hideMode") === "auto" ? 0 : root.thickness
 
+    // ===== per monitor =====
+    // Settings -> Bar -> This monitor (`bar.screens`, JSON keyed by output name). Each
+    // monitor may:
+    //   hidden    have no bar at all (the other monitors keep theirs)
+    //   position  sit on its own edge ("" = the shell-wide `position` above)
+    //   wrap      "auto": a flat bar too narrow for its modules (a portrait monitor) grows
+    //             a second (or third) row instead of letting the zones run over each other;
+    //             "off": one row, as before
+    // From a keybind or a script:
+    //   qs -c sekaipop ipc call barposition setscreen HDMI-A-2 left      ("default" = follow)
+    //   qs -c sekaipop ipc call barposition hidescreen HDMI-A-2 true
+    //   qs -c sekaipop ipc call barposition wrapscreen HDMI-A-2 off
+    readonly property var wrapModes: ["auto", "off"]
+    readonly property var screenPrefs: {
+        try {
+            const j = JSON.parse(SettingsService.get("bar.screens") || "{}")
+            return j && typeof j === "object" && !Array.isArray(j) ? j : ({})
+        } catch (e) {
+            return ({})
+        }
+    }
+
+    function prefsFor(name) {
+        const p = (name && root.screenPrefs[name]) || {}
+        return {
+            hidden: p.hidden === true,
+            position: root.names.indexOf(p.position) >= 0 ? p.position : "",
+            wrap: root.wrapModes.indexOf(p.wrap) >= 0 ? p.wrap : "auto"
+        }
+    }
+
+    // The edge the bar on this monitor sits on.
+    function positionFor(name) {
+        return root.prefsFor(name).position || root.position
+    }
+
+    // This monitor has its own edge (rather than following the shell-wide one).
+    function ownPosition(name) {
+        return root.prefsFor(name).position !== ""
+    }
+
+    function hiddenOn(name) {
+        return root.prefsFor(name).hidden
+    }
+
+    function wrapFor(name) {
+        return root.prefsFor(name).wrap
+    }
+
+    // Change one of a monitor's own choices. A choice set back to its default is dropped,
+    // and a monitor with nothing of its own left is dropped from the JSON entirely.
+    function setScreenPref(name, key, value) {
+        if (!name || ["hidden", "position", "wrap"].indexOf(key) < 0)
+            return
+        const all = JSON.parse(JSON.stringify(root.screenPrefs))
+        const mine = Object.assign({}, all[name] || {})
+        const isDefault = (key === "hidden" && value !== true)
+            || (key === "position" && root.names.indexOf(value) < 0)
+            || (key === "wrap" && value !== "off")
+        if (isDefault)
+            delete mine[key]
+        else
+            mine[key] = value
+        if (Object.keys(mine).length === 0)
+            delete all[name]
+        else
+            all[name] = mine
+        SettingsService.set("bar.screens", JSON.stringify(all))
+    }
+
+    // How much thicker than its design thickness each monitor's bar is right now, in design
+    // pixels: a wrapped bar's extra rows (Bar.qml reports it). { name: { edge, extra } }.
+    property var liveExtra: ({})
+
+    function reportExtra(name, edge, extra) {
+        if (!name)
+            return
+        const cur = root.liveExtra[name]
+        // A bar that is going away (it moved edge) does not clear its successor's report.
+        if (extra === 0 && cur && cur.edge !== edge)
+            return
+        if (cur && cur.edge === edge && cur.extra === extra)
+            return
+        const next = Object.assign({}, root.liveExtra)
+        next[name] = { edge: edge, extra: extra }
+        root.liveExtra = next
+    }
+
+    // The bar's thickness on this monitor, design pixels: its edge's, plus any wrapped rows;
+    // 0 when the monitor has no bar. Popups, the OSD and the dock keep clear of this.
+    function thicknessOn(name) {
+        if (root.hiddenOn(name))
+            return 0
+        const edge = root.positionFor(name)
+        const e = root.liveExtra[name]
+        return root.thicknessFor(edge) + (e && e.edge === edge ? e.extra : 0)
+    }
+
+    // What the bar reserves on this monitor (none while it auto-hides or is hidden).
+    function reservedOn(name) {
+        return SettingsService.get("bar.hideMode") === "auto" ? 0 : root.thicknessOn(name)
+    }
+
     // True once the saved edge has been read (or there is nothing saved,
     // or reading it failed). shell.qml doesn't create any bar before
     // this, so the bar is built once on the right edge instead of being
@@ -131,6 +234,24 @@ Singleton {
 
         function get(): string {
             return root.position
+        }
+
+        // Per monitor (see `screenPrefs`). `edge` "default" follows the shell-wide edge.
+        function setscreen(screen: string, edge: string): void {
+            root.setScreenPref(screen, "position", edge)
+        }
+
+        function hidescreen(screen: string, hidden: bool): void {
+            root.setScreenPref(screen, "hidden", hidden)
+        }
+
+        function wrapscreen(screen: string, mode: string): void {
+            if (root.wrapModes.indexOf(mode) >= 0)
+                root.setScreenPref(screen, "wrap", mode)
+        }
+
+        function getscreen(screen: string): string {
+            return JSON.stringify(Object.assign({ edge: root.positionFor(screen) }, root.prefsFor(screen)))
         }
     }
 }

@@ -3,6 +3,7 @@ import Quickshell
 import QtQuick.Layouts
 import qs.modules.common
 import qs.modules.common.widgets
+import "BarWrap.js" as BarWrap
 
 // Pure UI (no Quickshell imports): Bar.qml feeds this Hyprland/clock
 // data through plain properties and turns its signals into actions.
@@ -64,6 +65,104 @@ Item {
     // hard shadow under it, so this reads as about 12 between the faces.)
     // (Capsule: the 4 px of shadow room under a pill plus this reads as the same 6 as between its dots.)
     readonly property real vGap: status_Bar.capsule ? mt.capGap - mt.shadowOffset : 8
+
+    // ===== wrapping: a flat bar too narrow for its modules =====
+    // The three zones are anchored on their own (left end, dead centre, right end), so on a
+    // narrow screen (a portrait monitor) they used to run over each other. With wrapping on
+    // (Settings -> Bar -> This monitor -> Wrap, fed by Bar.qml as `wrapAllowed`) the bar
+    // grows rows instead:
+    //   1 row    everything fits: the bar as it always was
+    //   2 rows   left + right zones on the first row, the centre zone centred under them
+    //            (no centre zone: the left zone, then the right zone under it)
+    //   3 rows   left, centre, right: one zone per row
+    // Bar.qml makes the window (and what it reserves) `extraThickness` thicker, and tells
+    // BarPositionService so popups and the OSD keep clear of the taller bar.
+    //
+    // Whether a row fits is measured with widths that do not depend on the rows: the media
+    // pill at its smallest (`mediaNeed`), the active-window pill at its cap. So a long song
+    // title or window title never makes the bar change shape; a module that appears (a
+    // Discord call) can. Changes wait `rowSettle` ms and a row only goes away again once the
+    // bar fits with `rowSlack` px to spare, so the bar never flickers between shapes.
+    property bool wrapAllowed: true
+    readonly property real rowStep: status_Bar.capsule ? 30 : 48
+    readonly property real rowSlack: 32
+    readonly property int rowSettle: 250
+    readonly property real mediaNeed: 220
+    property int rows: 1
+    readonly property real extraThickness: (status_Bar.rows - 1) * status_Bar.rowStep
+
+    // Room a zone needs on one row, design pixels (0 = nothing in it is showing).
+    function zoneNeed(zone) {
+        let w = 0
+        let n = 0
+        for (const id of (status_Bar.layout[zone] || [])) {
+            if (!status_Bar.shows(id))
+                continue
+            let iw = 0
+            if (id === "media")
+                iw = Math.min(status_Bar.mediaNeed, status_Bar.mediaCap)
+            else if (id === "activeWindow")
+                iw = status_Bar.maxActiveWindowWidth
+            else {
+                for (const it of status_Bar.itemsOf(id)) {
+                    if (it.visible)
+                        iw += status_Bar.slotWidth(it)
+                }
+            }
+            if (iw > 0) {
+                w += iw
+                n++
+            }
+            if (id === "workspaces")
+                w += 2 * badges.neighborShift
+        }
+        return w + Math.max(0, n - 1) * status_Bar.zoneGap
+    }
+
+    // How many rows the zones need on a bar `W` wide.
+    // (BarWrap.js has the rules.)
+    function rowsFor(W) {
+        if (status_Bar.vertical || !status_Bar.wrapAllowed)
+            return 1
+        return BarWrap.rowsFor(status_Bar.zoneNeed("left"), status_Bar.zoneNeed("center"),
+                               status_Bar.zoneNeed("right"), W)
+    }
+
+    // Which row a zone sits on, 0 first (top to bottom on any flat bar; a bottom bar just
+    // grows upward).
+    function rowOf(zone) {
+        return status_Bar.rows <= 1 ? 0 : BarWrap.rowOf(zone, status_Bar.rows, status_Bar.zoneNeed("center") > 0)
+    }
+
+    // A zone alone on its row is centred on it (BarWrap.alone).
+    function aloneOnRow(zone) {
+        return !status_Bar.vertical && status_Bar.rows > 1
+            && BarWrap.alone(zone, status_Bar.rows, status_Bar.zoneNeed("center") > 0)
+    }
+
+    // The middle of a row, measured from the top of `content`. One row: the middle of the bar.
+    function rowCenter(row) {
+        return BarWrap.rowCenter(content.height, status_Bar.rows, status_Bar.rowStep, row)
+    }
+
+    readonly property int fitRows: status_Bar.rowsFor(content.width)
+    readonly property int fitRowsLoose: status_Bar.rowsFor(content.width - status_Bar.rowSlack)
+
+    function settleRows() {
+        status_Bar.rows = BarWrap.settle(status_Bar.rows, status_Bar.fitRows, status_Bar.fitRowsLoose)
+    }
+
+    onFitRowsChanged: rowTimer.restart()
+    onFitRowsLooseChanged: rowTimer.restart()
+    // Switching wrapping off (or standing the bar up) goes back to one row at once.
+    onWrapAllowedChanged: status_Bar.settleRows()
+    onVerticalChanged: status_Bar.settleRows()
+
+    Timer {
+        id: rowTimer
+        interval: status_Bar.rowSettle
+        onTriggered: status_Bar.settleRows()
+    }
 
     // A standing bar has a lot to stack. On a short screen (this is the
     // bar's own length, in design pixels, so it already accounts for the
@@ -384,6 +483,19 @@ Item {
         const z = status_Bar.zoneMap["media"]
         const half = content.width / 2
         let room
+        // Wrapped (see `rows`): only the zones on the media pill's own row take room from it.
+        const mz = z === "left" || z === "right" ? z : "center"
+        const sharesRow = zz => zz !== mz && status_Bar.rowOf(zz) === status_Bar.rowOf(mz)
+        if (status_Bar.rows > 1) {
+            room = content.width - status_Bar.othersWidth(mz)
+            if (sharesRow("left"))
+                room -= leftGroup.width + 12
+            if (sharesRow("right"))
+                room -= rightGroup.width + 12
+            if (sharesRow("center"))
+                room -= centerGroup.width + 12
+            return Math.min(status_Bar.mediaCap, Math.max(0, room))
+        }
         if (z === "left") {
             room = content.width - rightGroup.width - 12 - status_Bar.othersWidth("left")
             if (centerGroup.width > 0)
@@ -564,6 +676,12 @@ Item {
     // 3 px below it. All three colours come from the theme (Theme.capBody / capRim /
     // capShade). The rim is a plain Rectangle under the body, not a border, so the two
     // curves stay concentric.
+    // Fully rounded, except that a wrapped flat Capsule (`rows` > 1) keeps the corners of its
+    // one-row self, so it reads as a taller slab rather than a long stadium.
+    function capRadius(width, height) {
+        return status_Bar.vertical ? Math.min(width, height) / 2 : Math.min(width, height, mt.capBarFace) / 2
+    }
+
     Item {
         id: capsuleLayer
         anchors.fill: parent
@@ -579,7 +697,7 @@ Item {
             y: mt.capShadowDy
             width: parent.width
             height: parent.height - mt.capShadowDy
-            radius: Math.min(width, height) / 2
+            radius: status_Bar.capRadius(width, height)
             color: mt.capShade
             antialiasing: true
         }
@@ -588,7 +706,7 @@ Item {
             id: capFace
             width: parent.width
             height: parent.height - mt.capShadowDy
-            radius: Math.min(width, height) / 2
+            radius: status_Bar.capRadius(width, height)
             color: mt.capRim
             antialiasing: true
         }
@@ -596,7 +714,7 @@ Item {
         Rectangle {
             anchors.fill: capFace
             anchors.margins: mt.capRimWidth
-            radius: Math.min(width, height) / 2
+            radius: Math.max(0, status_Bar.capRadius(capFace.width, capFace.height) - mt.capRimWidth)
             color: mt.capBody
             antialiasing: true
         }
@@ -625,10 +743,12 @@ Item {
 
         GridLayout {
             id: leftGroup
-            anchors.left: status_Bar.vertical ? undefined : parent.left
+            anchors.left: status_Bar.vertical || status_Bar.aloneOnRow("left") ? undefined : parent.left
             anchors.top: status_Bar.vertical ? parent.top : undefined
-            anchors.verticalCenter: status_Bar.vertical ? undefined : parent.verticalCenter
-            anchors.horizontalCenter: status_Bar.vertical ? parent.horizontalCenter : undefined
+            // (Flat: centred on its row, measured from the top; see `rows`.)
+            anchors.verticalCenter: status_Bar.vertical ? undefined : parent.top
+            anchors.verticalCenterOffset: status_Bar.vertical ? 0 : status_Bar.rowCenter(status_Bar.rowOf("left"))
+            anchors.horizontalCenter: status_Bar.vertical || status_Bar.aloneOnRow("left") ? parent.horizontalCenter : undefined
             columns: status_Bar.vertical ? 1 : 100
             columnSpacing: status_Bar.zoneGap
             rowSpacing: status_Bar.vertical ? status_Bar.vGap : status_Bar.zoneGap
@@ -639,7 +759,9 @@ Item {
         // zones, so it steps aside when they leave no room for it.
         GridLayout {
             id: centerGroup
-            anchors.centerIn: parent
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: status_Bar.vertical ? parent.verticalCenter : parent.top
+            anchors.verticalCenterOffset: status_Bar.vertical ? 0 : status_Bar.rowCenter(status_Bar.rowOf("center"))
             visible: !status_Bar.vertical
                 || content.height > leftGroup.height + rightGroup.height + centerGroup.implicitHeight + 24
             columns: status_Bar.vertical ? 1 : 100
@@ -649,10 +771,11 @@ Item {
 
         GridLayout {
             id: rightGroup
-            anchors.right: status_Bar.vertical ? undefined : parent.right
+            anchors.right: status_Bar.vertical || status_Bar.aloneOnRow("right") ? undefined : parent.right
             anchors.bottom: status_Bar.vertical ? parent.bottom : undefined
-            anchors.verticalCenter: status_Bar.vertical ? undefined : parent.verticalCenter
-            anchors.horizontalCenter: status_Bar.vertical ? parent.horizontalCenter : undefined
+            anchors.verticalCenter: status_Bar.vertical ? undefined : parent.top
+            anchors.verticalCenterOffset: status_Bar.vertical ? 0 : status_Bar.rowCenter(status_Bar.rowOf("right"))
+            anchors.horizontalCenter: status_Bar.vertical || status_Bar.aloneOnRow("right") ? parent.horizontalCenter : undefined
             columns: status_Bar.vertical ? 1 : 100
             columnSpacing: status_Bar.zoneGap
             rowSpacing: status_Bar.vertical ? status_Bar.vGap : status_Bar.zoneGap

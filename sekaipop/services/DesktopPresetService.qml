@@ -136,6 +136,7 @@ Singleton {
     readonly property var keepExact: [
         "time.use24h",
         "pictures.framing",    // belongs to each picture: the `images` part carries it (imageEntry)
+        "bar.screens",         // per-monitor bar (hidden / edge / wrap): keyed by this machine's output names
         "notify.on",           // do-not-disturb is the person's, not the look's
         "notify.quietFullscreen", // so is "quiet while a window is fullscreen"
         "battery.alerts",      // and whether the low-battery warnings are on

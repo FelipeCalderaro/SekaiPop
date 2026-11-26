@@ -1967,7 +1967,7 @@ Scope {
         // the phone is opened after them, so on the same layer it is drawn over them.
         // Also while a window is fullscreen: some apps (a photo viewer, say) are drawn over the
         // Top layer, which put the phone behind them, out of sight but still taking the mouse.
-        WlrLayershell.layer: (BarPositionService.position === "bottom" || root.settingsShown
+        WlrLayershell.layer: (BarPositionService.positionFor(win.screen ? win.screen.name : "") === "bottom" || root.settingsShown
                               || root.useCatcher || root.coverCheat || root.fullscreenUp
                               || EditMode.active) ? WlrLayer.Overlay
                                                   : WlrLayer.Top

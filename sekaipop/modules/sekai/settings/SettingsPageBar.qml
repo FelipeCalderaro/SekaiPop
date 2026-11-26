@@ -13,6 +13,8 @@ SettingsPage {
     // The monitor this Settings Panel is on (the one "Reset" below means when
     // the bars are separate).
     readonly property string screenName: page.host ? page.host.screenName : ""
+    // That monitor's own bar choices (hidden / edge / wrap).
+    readonly property var prefs: BarPositionService.prefsFor(page.screenName)
 
     readonly property var modules: [
         { key: "bar.workspaces", icon: "grid_view", label: "Workspaces" },
@@ -106,6 +108,53 @@ SettingsPage {
             label: BarLayoutService.perMonitor ? "Reset this monitor's bar layout" : "Reset bar layout"
             detail: BarLayoutService.customizedFor(page.screenName) ? "Back to the default order" : "Already the default"
             onActivated: BarLayoutService.reset(page.screenName)
+        }
+    }
+
+    // This monitor's own bar (BarPositionService screenPrefs, `bar.screens`): hide it here
+    // only, give it its own edge, or let a narrow (portrait) bar wrap onto more rows instead
+    // of its zones running over each other. The other monitors are not touched.
+    SectionCard {
+        title: "This monitor" + (page.screenName !== "" ? " · " + page.screenName : "")
+        visible: page.screenName !== ""
+
+        SettingToggle {
+            icon: "desktop_windows"
+            label: "Bar on this monitor"
+            detail: page.prefs.hidden ? "Hidden here · other monitors keep theirs" : "Shown"
+            checked: !page.prefs.hidden
+            onToggled: BarPositionService.setScreenPref(page.screenName, "hidden", !page.prefs.hidden)
+        }
+
+        SettingChoice {
+            visible: !page.prefs.hidden
+            label: "Edge here"
+            sublabel: page.prefs.position === ""
+                ? "Follows Position above (" + BarPositionService.position + ")"
+                : "Only this monitor"
+            current: page.prefs.position === "" ? "default" : page.prefs.position
+            options: [
+                { id: "default", label: "Same", icon: "link" },
+                { id: "top", label: "Top", edge: "top" },
+                { id: "right", label: "Right", edge: "right" },
+                { id: "bottom", label: "Bottom", edge: "bottom" },
+                { id: "left", label: "Left", edge: "left" }
+            ]
+            onPicked: id => BarPositionService.setScreenPref(page.screenName, "position", id)
+        }
+
+        SettingChoice {
+            visible: !page.prefs.hidden
+            label: "When it doesn't fit"
+            sublabel: ["left", "right"].indexOf(BarPositionService.positionFor(page.screenName)) >= 0
+                ? "A standing bar folds its utility keys instead"
+                : "A narrow flat bar (portrait screen)"
+            current: page.prefs.wrap
+            options: [
+                { id: "auto", label: "Wrap", icon: "wrap_text" },
+                { id: "off", label: "Overlap", icon: "view_column" }
+            ]
+            onPicked: id => BarPositionService.setScreenPref(page.screenName, "wrap", id)
         }
     }
 

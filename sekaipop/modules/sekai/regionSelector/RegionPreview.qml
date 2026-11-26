@@ -181,9 +181,9 @@ Variants {
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
         readonly property real uiScale: ShellScale.forScreen(win.screen)
-        readonly property string barPosition: BarPositionService.position
+        readonly property string barPosition: BarPositionService.positionFor((win.screen ? win.screen.name : ""))
         // The bar's own edge is kept clear (the window sits beside it).
-        readonly property real barOffset: Math.round(BarPositionService.thickness * win.uiScale)
+        readonly property real barOffset: Math.round(BarPositionService.thicknessOn((win.screen ? win.screen.name : "")) * win.uiScale)
 
         anchors {
             bottom: true

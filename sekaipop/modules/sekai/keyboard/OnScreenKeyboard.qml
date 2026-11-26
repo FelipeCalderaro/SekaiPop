@@ -110,7 +110,7 @@ Variants {
         // Bottom edge, centred (no left / right anchor), clear of a bar that
         // is on the bottom.
         anchors.bottom: true
-        margins.bottom: Math.round((14 + (BarPositionService.position === "bottom" ? BarPositionService.thickness : 0)) * win.uiScale)
+        margins.bottom: Math.round((14 + (BarPositionService.positionFor((win.screen ? win.screen.name : "")) === "bottom" ? BarPositionService.thicknessOn((win.screen ? win.screen.name : "")) : 0)) * win.uiScale)
 
         implicitWidth: Math.ceil(root.boardW * win.uiScale)
         implicitHeight: Math.ceil(root.boardH * win.uiScale)

@@ -89,7 +89,7 @@ Variants {
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
         readonly property real uiScale: ShellScale.forScreen(win.screen)
-        readonly property real barOffset: Math.round((BarPositionService.thickness + root.gap) * win.uiScale)
+        readonly property real barOffset: Math.round((BarPositionService.thicknessOn((win.screen ? win.screen.name : "")) + root.gap) * win.uiScale)
         readonly property real edge: Math.round(root.gap * win.uiScale)
 
         anchors {
@@ -97,8 +97,8 @@ Variants {
             right: true
         }
         margins {
-            top: BarPositionService.position === "top" ? win.barOffset : win.edge
-            right: BarPositionService.position === "right" ? win.barOffset : win.edge
+            top: BarPositionService.positionFor((win.screen ? win.screen.name : "")) === "top" ? win.barOffset : win.edge
+            right: BarPositionService.positionFor((win.screen ? win.screen.name : "")) === "right" ? win.barOffset : win.edge
         }
 
         implicitWidth: Math.ceil(pill.width * win.uiScale)

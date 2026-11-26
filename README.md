@@ -233,6 +233,9 @@ It is read-only: it lists what is installed and what is missing, and changes not
 | `--kitty keep` | Keep the current Kitty theme choice and report problems with an existing integration |
 | `--kitty enable` | Opt in to SekaiPop's Kitty colours after validating the configuration |
 | `--restore-kitty` | Remove SekaiPop's Kitty integration and exit |
+| `--plugins copy` | Copy the bundled plugins (`plugins/`) into `~/.config/sekaipop/plugins` (default). A plugin folder that is replaced is moved to `~/.config/sekaipop/plugins.sekaipop-backup-<time>/` first; plugins you added yourself or installed from Settings are never touched |
+| `--plugins link` | Link the bundled plugins to this checkout instead (for a checkout you keep and edit) |
+| `--plugins skip` | Leave the plugins folder alone |
 | `--no-deps` | Only copy files, install no packages |
 | `--rice DIR` | Install a different copy of the `sekaipop` folder |
 | `--restore` | Put back the Hyprland config backed up by the last run |
@@ -284,6 +287,8 @@ Edit the files in `~/.config/hypr/custom/` (`keybinds.lua`, `rules.lua`, `variab
 ### Plugins
 
 A plugin is a desktop widget, an entry in the bar with a card under it, or both, kept in its own folder, usually its own repo: put one in `~/.config/sekaipop/plugins/` (most come with an `install.sh` that does it), run `qs -c sekaipop ipc call plugins reload`, then add its widget from Edit Desktop and switch its bar entry on in Settings > Bar > Modules. A plugin runs with the shell's full rights, so install only what you would run as your own script. Writing one, and the interface it gets: [Plugins](docs/PLUGINS.md); the smallest examples are [hello clock](examples/plugins/hello-clock/) (a widget) and [hello bar](examples/plugins/hello-bar/) (a bar entry).
+
+The plugins bundled in [`plugins/`](plugins/) are installed by `install.sh` along with the rest (their bar entries stay off until you turn them on): [AniList](plugins/anilist/) shows what you're watching and reading, the next episode's countdown, and +1 from its card, and you connect and configure it from that card.
 
 <!-- plugin-list -->
 | Plugin | What it adds |

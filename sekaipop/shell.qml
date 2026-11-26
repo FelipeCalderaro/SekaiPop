@@ -557,8 +557,11 @@ ShellRoot {
             // (Waits for GameModeService too: a start with Game Mode already on
             // builds the fixed bar straight away, not the full one first.)
             if (BarPositionService.loaded && GameModeService.loaded && SettingsService.flag("bar.visible")) {
-                for (const s of Quickshell.screens)
-                    list.push({ screen: s, position: BarPositionService.position })
+                // (Settings -> Bar -> This monitor: a monitor can have no bar, or its own edge.)
+                for (const s of Quickshell.screens) {
+                    if (!BarPositionService.hiddenOn(s.name))
+                        list.push({ screen: s, position: BarPositionService.positionFor(s.name) })
+                }
             }
             return list
         }
@@ -598,7 +601,7 @@ ShellRoot {
             // exists, and is built again when a bar is (a new bar window = the entry
             // below holds the new window, so the dock is made again after it).
             const barsWanted = (BarPositionService.loaded && GameModeService.loaded && SettingsService.flag("bar.visible"))
-                ? Quickshell.screens.length : 0
+                ? Quickshell.screens.filter(s => !BarPositionService.hiddenOn(s.name)).length : 0
             if (bars.instances.length < barsWanted)
                 return list
             const every = SettingsService.flag("dock.perMonitor")
@@ -618,7 +621,7 @@ ShellRoot {
                 if (!every && i !== only)
                     continue
                 list.push({ screen: Quickshell.screens[i], position: pos, perMonitor: every,
-                            afterBar: i < bars.instances.length ? bars.instances[i] : null })
+                            afterBar: bars.instances.find(b => b.screen === Quickshell.screens[i]) ?? null })
             }
             return list
         }

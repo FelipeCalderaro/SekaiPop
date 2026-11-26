@@ -54,9 +54,9 @@ Variants {
 
         readonly property real uiScale: ShellScale.forScreen(win.screen)
         readonly property real cardScale: win.uiScale * root.compact
-        readonly property string barPosition: BarPositionService.position
+        readonly property string barPosition: BarPositionService.positionFor((win.screen ? win.screen.name : ""))
         readonly property bool atBottom: win.barPosition === "bottom"
-        readonly property real barOffset: Math.round((BarPositionService.thickness + root.gap) * win.uiScale)
+        readonly property real barOffset: Math.round((BarPositionService.thicknessOn((win.screen ? win.screen.name : "")) + root.gap) * win.uiScale)
         readonly property real edgeGap: Math.round(16 * win.uiScale)
 
         readonly property bool shown: root.source !== null

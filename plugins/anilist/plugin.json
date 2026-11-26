@@ -1,0 +1,176 @@
+{
+    "id": "anilist",
+    "name": "AniList",
+    "version": "1.1.0",
+    "api": 1,
+    "description": "What you are watching and reading on AniList, in the bar: the next episode's countdown, your progress, and +1 from the popup. Connect and configure it from its own popup.",
+    "icon": "live_tv",
+    "bar": {
+        "label": "AniList",
+        "icon": "live_tv"
+    },
+    "settings": {
+        "username": "",
+        "clientId": "",
+        "listType": "ANIME",
+        "sortBy": "airing",
+        "maxEntries": 8,
+        "barShows": "airing",
+        "hideWhenEmpty": false,
+        "titleLanguage": "user",
+        "accent": "profile",
+        "showBanner": true,
+        "refreshMinutes": 15,
+        "callbackPort": 47823
+    },
+    "settingsInfo": {
+        "username": {
+            "label": "AniList username",
+            "description": "Reads your public list. Easiest set from the popup (Sign in key). Not needed once you are signed in.",
+            "group": "Account"
+        },
+        "clientId": {
+            "label": "API client ID",
+            "description": "For Sign in with AniList: make a client at anilist.co/settings/developer whose Redirect URL is http://localhost:47823/callback (the popup walks you through it).",
+            "group": "Account"
+        },
+        "listType": {
+            "label": "Lists",
+            "choices": [
+                {
+                    "value": "ANIME",
+                    "label": "Anime"
+                },
+                {
+                    "value": "MANGA",
+                    "label": "Manga"
+                },
+                {
+                    "value": "BOTH",
+                    "label": "Both"
+                }
+            ],
+            "group": "Lists"
+        },
+        "sortBy": {
+            "label": "Order",
+            "description": "Next to air first, or the one you touched last.",
+            "choices": [
+                {
+                    "value": "airing",
+                    "label": "Airing soon"
+                },
+                {
+                    "value": "updated",
+                    "label": "Recent"
+                }
+            ],
+            "group": "Lists"
+        },
+        "maxEntries": {
+            "label": "Entries in the popup",
+            "min": 3,
+            "max": 25,
+            "unit": "entries",
+            "group": "Lists"
+        },
+        "barShows": {
+            "label": "Bar shows",
+            "choices": [
+                {
+                    "value": "airing",
+                    "label": "Next episode"
+                },
+                {
+                    "value": "progress",
+                    "label": "Last progress"
+                },
+                {
+                    "value": "count",
+                    "label": "Count"
+                },
+                {
+                    "value": "unread",
+                    "label": "Notifications"
+                }
+            ],
+            "group": "Bar"
+        },
+        "hideWhenEmpty": {
+            "label": "Hide when the list is empty",
+            "description": "No pill at all while you are not watching or reading anything.",
+            "group": "Bar"
+        },
+        "titleLanguage": {
+            "label": "Titles in",
+            "choices": [
+                {
+                    "value": "user",
+                    "label": "My AniList choice"
+                },
+                {
+                    "value": "romaji",
+                    "label": "Romaji"
+                },
+                {
+                    "value": "english",
+                    "label": "English"
+                },
+                {
+                    "value": "native",
+                    "label": "Native"
+                }
+            ],
+            "group": "Look"
+        },
+        "accent": {
+            "label": "Header colour",
+            "choices": [
+                {
+                    "value": "profile",
+                    "label": "Profile colour"
+                },
+                {
+                    "value": "theme",
+                    "label": "Theme"
+                },
+                {
+                    "value": "cover",
+                    "label": "Latest cover"
+                }
+            ],
+            "group": "Look"
+        },
+        "showBanner": {
+            "label": "Profile banner in the header",
+            "group": "Look"
+        },
+        "refreshMinutes": {
+            "label": "Check every",
+            "description": "While the entry is on a bar. Opening the popup checks again if it is older than a minute.",
+            "min": 5,
+            "max": 120,
+            "step": 5,
+            "unit": "minutes",
+            "group": "Sync"
+        },
+        "callbackPort": {
+            "label": "Sign-in callback port",
+            "description": "Where the popup listens for AniList after you approve it. Change it only if 47823 is taken, and set the API client's Redirect URL to match.",
+            "group": "Account"
+        }
+    },
+    "groups": [
+        "Account",
+        "Lists",
+        "Bar",
+        "Look",
+        "Sync"
+    ],
+    "secrets": {
+        "token": {
+            "env": "ANILIST_TOKEN",
+            "file": "~/.config/sekaipop/anilist-token"
+        }
+    }
+}

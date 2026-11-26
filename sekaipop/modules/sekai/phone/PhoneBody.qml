@@ -293,7 +293,14 @@ Item {
             return 1
         const px = scene.width * scene.height * renderScale * renderScale
         const mp = turnLite ? turnMegapixels : (moving ? moveMegapixels : restMegapixels)
-        return Math.max(1, Math.min(superSample, Math.sqrt(mp * 1000000 / Math.max(1, px))))
+        const f = Math.max(1, Math.min(superSample, Math.sqrt(mp * 1000000 / Math.max(1, px))))
+        // A whole number whenever the scene is mipmapped (everything but the turn): shrinking
+        // a mipmapped picture by 1.6x makes the GPU blend in the half-size level, a plain
+        // blur. That is what the Settings phone did the moment its turn landed (the big
+        // landscape phone rarely fits 2x in the 10 MP budget): sharp while turning, with
+        // mipmaps off, soft once they came back. 2x lands exactly on the half-size level (a
+        // clean box filter) and 1x needs no shrinking at all.
+        return turnLite ? f : Math.floor(f)
     }
 
     // Same idea, but for `face` alone (the screen content: buttons,
@@ -330,7 +337,9 @@ Item {
         // measured on the scene, which is the bigger picture).
         const sceneCap = Math.sqrt(restMegapixels * 1000000
                                    / Math.max(1, scene.width * scene.height * renderScale * renderScale))
-        return Math.max(1, Math.min(superSample * faceOversample, cap, Math.max(1, sceneCap)))
+        // Whole, like `ss` at rest, so the face lands on the scene at the same density
+        // (a 1.6x face on a 1x scene would be shrunk again, unfiltered).
+        return Math.max(1, Math.floor(Math.min(superSample * faceOversample, cap, Math.max(1, sceneCap))))
     }
     readonly property int contentSamples: restSamples
 

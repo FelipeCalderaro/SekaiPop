@@ -38,6 +38,9 @@
 #   --sddm MODE         ask | yes | no: SekaiPop's SDDM login screen (the theme, with sudo, selected
 #                       as the login screen; the previous one is written down). Default ask; --yes alone = no
 #   --restore-sddm      take SekaiPop's login screen out (SDDM's previous theme back) and exit
+#   --reload MODE       ask | yes | no: at the end, inside a running Hyprland, reload it and restart
+#                       the shell on the new files. ask (default) asks after a full or merge install;
+#                       yes does it in every mode, --hypr skip too; no never does
 #   --no-deps           do not install packages / services (only copy files)
 #   --with-tests        also copy the developer tests folder
 #   --restore           put back the Hyprland config that was backed up by the last run
@@ -48,7 +51,7 @@
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 
-REPLACED=0; DRY=0; YES=0; RICE=""; HYPR=auto; PLUGINS=copy; KITTY=auto; NODEPS=0; WITH_TESTS=0; RESTORE=0; RESTORE_KITTY=0; DEPS_ARGS=(); SPOTIFY=ask; DISCORD=ask; SDDM=ask; RESTORE_SDDM=0; TERMINAL=auto
+REPLACED=0; DRY=0; YES=0; RICE=""; HYPR=auto; PLUGINS=copy; KITTY=auto; NODEPS=0; WITH_TESTS=0; RESTORE=0; RESTORE_KITTY=0; DEPS_ARGS=(); SPOTIFY=ask; DISCORD=ask; SDDM=ask; RESTORE_SDDM=0; TERMINAL=auto; RELOAD=ask
 while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run) DRY=1 ;;
@@ -63,10 +66,11 @@ while [ $# -gt 0 ]; do
         --discord) shift; DISCORD=${1:-}; case "$DISCORD" in ask|yes|no) ;; *) echo "--discord needs ask|yes|no" >&2; exit 2 ;; esac ;;
         --sddm) shift; SDDM=${1:-}; case "$SDDM" in ask|yes|no) ;; *) echo "--sddm needs ask|yes|no" >&2; exit 2 ;; esac ;;
         --restore-sddm) RESTORE_SDDM=1 ;;
+        --reload) shift; RELOAD=${1:-}; case "$RELOAD" in ask|yes|no) ;; *) echo "--reload needs ask|yes|no" >&2; exit 2 ;; esac ;;
         --no-deps) NODEPS=1 ;;
         --with-tests) WITH_TESTS=1 ;;
         --restore) RESTORE=1 ;;
-        -h|--help) sed -n '2,46p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,49p' "$0"; exit 0 ;;
         --) shift; DEPS_ARGS=("$@"); break ;;
         *) echo "unknown option: $1 (try --help)" >&2; exit 2 ;;
     esac
@@ -700,26 +704,58 @@ fi
 # A shell that is already running keeps the old files: the folder it watches was moved
 # aside, and a reload inside the same process can fail on Qt state left from them
 # ("FaceKey is not a type", issue #79). So it is restarted, as a new process.
-# Skip mode leaves the restart to the user because startup can write Hyprland overrides.
+# Skip mode leaves the restart to the user because startup can write Hyprland overrides,
+# unless --reload yes asks for it.
 shell_running() { have qs && ! qs list -p "$QS_DEST" 2>/dev/null | grep -q "No running instances"; }
 restart_shell() {
     setsid -f sh "$QS_DEST/scripts/system/restart-shell.sh" "$QS_DEST" >/dev/null 2>&1 && ok "shell restarted on the new files"
 }
-if [ "$DRY" = 0 ] && [ "$HYPR" = full ] && hypr_running; then
-    printf '\n'
-    if ask "You are inside Hyprland now. Reload it and start the shell right away?"; then
-        hyprctl reload >/dev/null 2>&1
-        if [ "$REPLACED" = 1 ] && shell_running; then
-            restart_shell
-        elif ! pgrep -x qs >/dev/null && ! pgrep -x quickshell >/dev/null; then
-            setsid -f qs -c sekaipop >/dev/null 2>&1 && ok "shell started"
-        fi
+# Reload Hyprland and say what came of it: a reload that fails, or a config Hyprland only
+# partly accepted, used to look exactly like one that worked (the output went to /dev/null).
+reload_hypr() {
+    local out errs
+    out=$(hyprctl reload 2>&1)
+    if [ "$out" = ok ]; then
+        ok "Hyprland reloaded"
+    else
+        warn "Hyprland did not confirm the reload: ${out:-no answer}"
     fi
-elif [ "$DRY" = 0 ] && [ "$HYPR" = skip ] && [ "$REPLACED" = 1 ]; then
-    warn "Restart SekaiPop to load the installed shell if it is already running."
-elif [ "$DRY" = 0 ] && [ "$HYPR" != skip ] && [ "$REPLACED" = 1 ] && shell_running; then
+    sleep 0.5
+    errs=$(hyprctl configerrors 2>/dev/null | grep -v '^[[:space:]]*$')
+    if [ -n "$errs" ]; then
+        warn "Hyprland reported problems in the config (the rest loaded):"
+        printf '%s\n' "$errs" | head -n 8 | sed 's/^/      /'
+        info "all of them: hyprctl configerrors   (and ~/.cache/sekaipop/hypr-errors.log)"
+    fi
+}
+start_or_restart_shell() {
+    if shell_running; then
+        restart_shell
+    elif ! pgrep -x qs >/dev/null && ! pgrep -x quickshell >/dev/null; then
+        setsid -f qs -c sekaipop >/dev/null 2>&1 && ok "shell started"
+    fi
+}
+if [ "$DRY" = 0 ] && [ "$RELOAD" != no ] && hypr_running; then
+    if [ "$RELOAD" = yes ]; then
+        printf '\n'
+        reload_hypr
+        start_or_restart_shell
+    elif [ "$HYPR" = full ] || [ "$HYPR" = merge ]; then
+        printf '\n'
+        if ask "You are inside Hyprland now. Reload it and start the shell on the new files?"; then
+            reload_hypr
+            if [ "$REPLACED" = 1 ] || ! shell_running; then start_or_restart_shell; fi
+        else
+            info "not reloaded: run  hyprctl reload  and restart the shell (Ctrl+Super+R) when ready"
+        fi
+    elif [ "$REPLACED" = 1 ]; then
+        warn "Hyprland was left alone (--hypr skip). Restart SekaiPop to load the installed shell (Ctrl+Super+R),"
+        info "or run this again with  --reload yes  to reload Hyprland and restart the shell for you."
+    fi
+elif [ "$DRY" = 0 ] && [ "$RELOAD" != no ] && [ "$REPLACED" = 1 ] && shell_running; then
+    # Not inside Hyprland (a TTY, another compositor): only the shell can be restarted.
     printf '\n'
-    ask "The shell is running on the old files. Restart it now?" && restart_shell
+    { [ "$RELOAD" = yes ] || ask "The shell is running on the old files. Restart it now?"; } && restart_shell
 fi
 # The rice unchanged but plugins added or replaced: a running shell reads its plugins folder again.
 if [ "$DRY" = 0 ] && [ "$PLUG_CHANGED" = 1 ] && [ "$REPLACED" = 0 ] && shell_running; then
